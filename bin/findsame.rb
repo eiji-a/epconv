@@ -3,6 +3,7 @@
 #
 
 require 'digest/md5'
+require 'fileutils'
 
 CONVERT = 'convert -resize'
 OPT2 = '+level 0,7 -level 0,7'
@@ -44,15 +45,15 @@ def operation1(f1, f2)
   bn = File.basename(f2)
   #pt = File.dirname(f2)
   pt = $QUA
-  File.rename(f2, pt + "/delete-" + bn)
+  FileUtils.mv(f2, pt + "/delete-" + bn)
 end
 
 def operation2(f1, f2)
   puts "SAME? #{f2} -> #{f1}"
   bn1 = File.basename(f1)
-  File.rename(f1, $QUA + "/same?#{$KEY}-" + bn1) if File.exist?(f1)
+  FileUtils.mv(f1, $QUA + "/same?#{$KEY}-" + bn1) if File.exist?(f1)
   bn2 = File.basename(f2)
-  File.rename(f2, $QUA + "/same?#{$KEY}-" + bn2) if File.exist?(f2)
+  FileUtils.mv(f2, $QUA + "/same?#{$KEY}-" + bn2) if File.exist?(f2)
 end
 
 def comp_hash(files)
