@@ -11,13 +11,13 @@ def init()
     STDERR.puts "Usage: epconv.rb <target dir>"
     exit(1)
   end
-  $TARGETDIR = ARGV[0]
+  $TARGETDIR = ARGV[0] + '/'
   $DIGEST = Digest::SHA1.new
 end
 
 def main() 
   init
-  Dir.glob($TARGETDIR + '*' + EXT) do |jp|
+  Dir.glob($TARGETDIR + '/*' + EXT) do |jp|
     bn = File.basename(jp, EXT)
     next if bn =~ /^#{PREFIX}/
     hashsrc = bn + File.size(jp).to_s +

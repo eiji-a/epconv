@@ -10,15 +10,18 @@ OPT2 = '+level 0,7 -level 0,7'
 RESO1 = 4
 RESO2 = 16
 RATIO = 10.0 / 100 # parcentage of difference
+TMPDIR = '/var/tmp/.epconv.cache'
 
 def init
   if ARGV.size < 2
-    STDERR.puts "Usage: findsame.rb <quarantine> <dir> [<dir> [<dir> ...]]"
+    STDERR.puts "Usage: findsame.rb <dir> [<dir> [<dir> ...]]"
     exit 1
   end
-  $QUA  = ARGV.shift
   $DIRS = ARGV
   $KEY = 1
+  if !File.exist?(TMPDIR)
+    FileUtils.mkdir(TMPDIR)
+  end
 end
 
 def calc_characteristic(f, sz)
@@ -26,13 +29,34 @@ def calc_characteristic(f, sz)
   `#{CONVERT} #{sz}x#{sz}! #{f} #{OPT2} PPM:- | tail -c #{bytes}`
 end
 
+def get_characteristic(f, sz)
+  chara = ''
+  if sz == RESO1
+    cache = TMPDIR + '/' + File.basename(f)
+    if File.exist?(cache)
+      File.open(cache, 'r') do |fp|
+        chara = fp.read      
+      end
+    else
+      chara = calc_characteristic(f, sz)
+      File.open(cache, 'w') do |fp|
+        fp.print chara
+      end
+    end
+  else
+    chara = calc_characteristic(f, sz)
+  end
+  chara
+end
+
 def get_files
   list = Hash.new
   #Dir.foreach($DIR) do |file|
   $DIRS.each do |d|
+    puts "=== DIR: #{d}"
     Dir.glob(d + "/*.jpg") do |file|
       #sz = File.size?(file)
-      cv = calc_characteristic(file, RESO1)
+      cv = get_characteristic(file, RESO1)
       list[cv] = Array.new if list[cv] == nil
       list[cv] << file
     end
@@ -43,17 +67,26 @@ end
 def operation1(f1, f2)
   puts "SAME! #{f2} -> #{f1}"
   bn = File.basename(f2)
-  #pt = File.dirname(f2)
-  pt = $QUA
+  pt = File.dirname(f2)
   FileUtils.mv(f2, pt + "/delete-" + bn)
 end
 
 def operation2(f1, f2)
   puts "SAME? #{f2} -> #{f1}"
+  key = sprintf("%04d", $KEY)
   bn1 = File.basename(f1)
-  FileUtils.mv(f1, $QUA + "/same?#{$KEY}-" + bn1) if File.exist?(f1)
+  pt1 = File.dirname(f1)
+  FileUtils.mv(f1, pt1 + "/same?#{key}-" + bn1) if File.exist?(f1)
   bn2 = File.basename(f2)
-  FileUtils.mv(f2, $QUA + "/same?#{$KEY}-" + bn2) if File.exist?(f2)
+  pt2 = File.dirname(f2)
+  #FileUtils.mv(f2, pt2 + "/same?#{key}-" + bn2) if File.exist?(f2)
+  FileUtils.mv(f2, pt1 + "/same?#{key}-" + bn2) if File.exist?(f2)
+  if File.exist?(TMPDIR + '/' + bn1)
+    FileUtils.mv(TMPDIR + '/' + bn1, TMPDIR + "/same?#{key}-" + bn1)
+  end
+  if File.exist?(TMPDIR + '/' + bn2)
+    FileUtils.mv(TMPDIR + '/' + bn2, TMPDIR + "/same?#{key}-" + bn2)
+  end
 end
 
 def comp_hash(files)
@@ -100,7 +133,9 @@ end
 
 def main()
   init
+  puts "GET FILES..."
   list = get_files
+  puts "CHECK DIFF..."
   check_diff list
 end
 
