@@ -6,8 +6,10 @@ require 'digest/md5'
 require 'fileutils'
 
 CONVERT = 'convert '
-OPT2 = '+level 0,7 -level 0,7'
-RESO1 = 4
+#OPT2 = '+level 0,7 -level 0,7'
+OPT2 = ''
+RESO1 = 2
+#RESO1 = 4
 RESO2 = 16
 #RESO1 = 1
 #RESO2 = 2
@@ -15,7 +17,7 @@ RATIO = 10.0 / 100 # parcentage of difference
 TMPDIR = '/var/tmp/.epconv.cache'
 
 def init
-  if ARGV.size < 2
+  if ARGV.size < 1
     STDERR.puts "Usage: findsame.rb <dir> [<dir> [<dir> ...]]"
     exit 1
   end
@@ -28,7 +30,7 @@ end
 
 def calc_characteristic(f, sz)
   bytes = sz * sz * 3
-  `#{CONVERT} -define jpeg:size=#{sz}x#{sz} -filter Cubic -resize #{sz}x#{sz}! -extent #{sz}x#{sz} #{f} #{OPT2} PPM:- | tail -c #{bytes}`
+  `#{CONVERT} -define jpeg:size=#{sz}x#{sz} -filter Cubic -resize #{sz}x#{sz}! #{f} #{OPT2} PPM:- | tail -c #{bytes}`
 end
 
 def get_characteristic(f, sz)
