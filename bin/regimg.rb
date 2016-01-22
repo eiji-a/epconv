@@ -22,8 +22,10 @@ def main
   init
 
   Dir.glob("*.jpg") do |f|
-    srcimg, dstimg = get_imgfile(f)
-    add_picimg(srcimg, dstimg)
+    hs = get_hash(f)
+    srcimg, dstimg = get_imgfile(f, hs)
+    dirname = get_dir(hs, PICDIR)
+    add_imgfile(srcimg, dstimg, dirname, INITTAG)
   end
 
   $DB.close
@@ -49,40 +51,37 @@ def is_tankdir(tankdir)
   return true
 end
 
-def get_imgfile(f)
-  fname = ""
-  if /^#{PICDIR}-.*\.jpg/.match f
-    fname = f
-  else
-    fname = PICDIR + "-" + get_hash(f) + ".jpg"
-  end
-  return f, fname
-end
-
 def get_hash(f)
   bn = File.basename(f, EXT)
   hashsrc = bn + File.size(f).to_s + File.ctime(f).to_s + Time.now.to_s
   $DIGEST.update(hashsrc).to_s
 end
 
-def add_picimg(simg, dimg)
-  idx = dimg[6, 2]
-  dirname = "#{$TANKDIR}/#{PICDIR}/#{idx}"
-  Dir.mkdir(dirname) if Dir.exist?(dirname) == false
-  #puts "SRC: #{simg}"
-  #puts "DST: #{dimg}"
-  #puts "IDX: #{idx}"
-  add_imgfile(simg, dimg, dirname)
+def get_imgfile(f, hs)
+  fname = ""
+  if /^#{PICDIR}-.*\.jpg/.match f
+    fname = f
+  else
+    fname = PICDIR + "-" + hs + ".jpg"
+  end
+  return f, fname
 end
 
-def add_imgfile(simg, dimg, dirname)
+def get_dir(hs, picdir)
+  idx = hs[0, 2]
+  dirname = "#{$TANKDIR}/#{picdir}/#{idx}"
+  Dir.mkdir(dirname) if Dir.exist?(dirname) == false
+  dirname
+end
+
+def add_imgfile(simg, dimg, dirname, tag)
   dstfile = "#{dirname}/#{dimg}"
   if File.exist?(dstfile)
     STDERR.puts "FILE EXISTS!: #{dstfile}"
     return
   end
   FileUtils.copy(simg, dstfile)
-  system "tag -a #{INITTAG} #{dstfile}"
+  system "tag -a #{tag} #{dstfile}" if tag != false
   insert_to_db(dimg, dstfile)
 end
 
