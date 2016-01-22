@@ -1,0 +1,21 @@
+
+- DB definition
+
+  create table images (
+    id integer primary key,
+    filename varchar(256),
+    fingerprint text,
+    checkdate varchar(14),
+    related_id text
+  );
+
+-- commands
+
+- register images
+
+$ ruby ~/project/imgtank/bin/regimg.rb ~/work/testtank
+
+- add relations
+
+$ sqlite3 ~/work/testtank/tank.sqlite "select id, checkdate, fingerprint from images;" | ~/project/imgtank/src/fp | ruby ~/project/imgtank/bin/addrel.rb ~/work/testtank
+
