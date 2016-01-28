@@ -21,13 +21,24 @@ FPSIZE = 8
 def main
   init
 
+#=begin
   Dir.glob("*.jpg") do |f|
+    next if File.directory?(f) == true
     hs = get_hash(f)
     srcimg, dstimg = get_imgfile(f, hs)
     dirname = get_dir(hs, PICDIR)
     add_imgfile(srcimg, dstimg, dirname, INITTAG)
   end
+#=end
 
+  Dir.foreach(".") do |f|
+    next if f =~ /^\./
+    next if File.directory?(f) == false
+    hs = get_hash(f)
+    dirname = get_dir(hs, MAGDIR)
+    add_imgdir(f, hs, dirname)
+   end
+  
   $DB.close
 end
 
@@ -72,6 +83,31 @@ def get_dir(hs, picdir)
   dirname = "#{$TANKDIR}/#{picdir}/#{idx}"
   Dir.mkdir(dirname) if Dir.exist?(dirname) == false
   dirname
+end
+
+def add_imgdir(sdir, hs, dirname)
+  num = 1
+  Dir.foreach(sdir) do |f|
+    next if f !~ /\.jpg$/
+    dimg = MAGDIR + "-" + hs + "-" + sprintf("%04d", num) + ".jpg"
+    index_img(sdir + "/" + f, hs, dirname)
+    ddirname = dirname + "/" + MAGDIR + "-" + hs
+    Dir.mkdir(ddirname) if File.exist?(ddirname) == false
+    add_imgfile(sdir + "/" + f, dimg, ddirname, false)
+    num += 1
+  end
+
+end
+
+def index_img(simg, hs, dirname)
+  idirname = dirname + "/index"
+  Dir.mkdir(idirname) if Dir.exists?(idirname) == false
+  idximg = MAGDIR + "-" + hs + "-index.jpg"
+  if simg =~ /cover/i || File.exists?(idirname + "/" + idximg) == false
+    dstfile = "#{idirname}/#{idximg}"
+    FileUtils.copy(simg, dstfile)
+    system "tag -a #{INITTAG} #{dstfile}"
+  end
 end
 
 def add_imgfile(simg, dimg, dirname, tag)
