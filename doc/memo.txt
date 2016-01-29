@@ -17,5 +17,5 @@ $ ruby ~/project/imgtank/bin/regimg.rb ~/work/testtank
 
 - add relations
 
-$ sqlite3 ~/work/testtank/tank.sqlite "select id, checkdate, fingerprint from images;" | ~/project/imgtank/src/fp | ruby ~/project/imgtank/bin/addrel.rb ~/work/testtank
+$ sqlite3 ~/work/testtank/tank.sqlite "select id, checkdate, fingerprint from images where checkdate <> 'deleted';" | ~/project/imgtank/src/fp | ruby ~/project/imgtank/bin/addrel.rb ~/work/testtank
 
