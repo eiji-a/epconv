@@ -60,13 +60,20 @@ def delete_mag(fname)
 end
 
 def delete_image(fname)
-  fname =~ /^(.+)-(..).+\.jpg$/
+  fname =~ /^(.+?)-(..).+\.jpg$/
   type = $1
   code = $2
   puts "F=#{fname}/T=#{type}/C=#{$2}"
   sql = "UPDATE images SET checkdate = ? WHERE filename = ?;"
   $DB.execute(sql, "deleted", fname)
-  tankfile = $TANKDIR + "/#{type}/#{code}/" + fname
+  tankfile = 
+    case type
+    when PICDIR
+      $TANKDIR + "/#{type}/#{code}/" + fname
+    when MAGDIR
+      fname =~ /^(.+)-.+\.jpg$/
+      $TANKDIR + "/#{type}/#{code}/" + fname
+    end    
   File.delete(tankfile) if File.exist?(tankfile);
 end
 

@@ -14,6 +14,7 @@ require 'sqlite3'
 DBFILE = 'tank.sqlite'
 PICDIR = 'eaepc'
 MAGDIR = 'emags'
+TMPDIR = '/tmp'
 EXT = '.jpg'
 INITTAG = 'notevaluated'
 FPSIZE = 8
@@ -33,11 +34,26 @@ def main
 
   Dir.foreach(".") do |f|
     next if f =~ /^\./
-    next if File.directory?(f) == false
-    hs = get_hash(f)
-    dirname = get_dir(hs, MAGDIR)
-    add_imgdir(f, hs, dirname)
-   end
+    if File.directory?(f) == true
+      hs = get_hash(f)
+      dirname = get_dir(hs, MAGDIR)
+      add_imgdir(f, hs, dirname)
+    elsif f =~ /\.zip$/
+      tname = TMPDIR + "/" + Time.now.strftime("%Y%m%d%H%M%S")
+      if File.exist?(tname) == false
+        FileUtils.mkdir(tname)
+        FileUtils.copy(f, tname + '.zip')
+        system "unzip -d #{tname} #{tname}.zip"
+        hs = get_hash(f)
+        dirname = get_dir(hs, MAGDIR)
+        add_imgdir(tname, hs, dirname)
+        FileUtils.remove_entry_secure(tname)
+        FileUtils.rm(tname + '.zip')
+      else
+        STDERR.puts "Can't extract zip: #{f}"
+      end
+    end
+  end
   
   $DB.close
 end
