@@ -15,6 +15,7 @@ DBFILE = 'tank.sqlite'
 PICDIR = 'eaepc'
 MAGDIR = 'emags'
 TRASHDIR = 'trash'
+DELDIR = 'deleted'
 EXT = '.jpg'
 INITTAG = 'notevaluated'
 FPSIZE = 8
@@ -23,15 +24,14 @@ FPSIZE = 8
 def main
   init
 
-  Dir.foreach($TANKDIR + "/" + TRASHDIR) do |f|
+  trashdir = $TANKDIR + "/" + TRASHDIR
+  Dir.foreach(trashdir) do |f|
     next if f =~ /^\./
-    fname = $TANKDIR + "/" + TRASHDIR + "/" + f
-    next if File.file?(fname) == false
-    if f =~ /index\.jpg$/
+    next if File.file?(trashdir + "/" + f) == false
+    if f =~ /-index\.jpg$/
       delete_mag(f)
     else
       delete_image(f)
-      File.delete(fname)
     end
   end
 end
@@ -56,7 +56,21 @@ def is_tankdir(tankdir)
 end
 
 def delete_mag(fname)
-
+  fname =~ /^(.+?)-(..)(.+)-index\.jpg$/
+  type = $1
+  code = $2
+  code2 = $3
+  return if type != MAGDIR
+  puts "F=#{fname}/T=#{type}/C=#{code}/C2=#{code2}"
+  sql = "UPDATE images SET checkdate = ? WHERE filename LIKE ?;"
+  fn = type + "-" + code + code2 + '%'
+  $DB.execute(sql, "deleted", fn)
+  targetdir = $TANKDIR + "/#{type}/#{code}/#{type}-#{code}#{code2}"
+  index     = $TANKDIR + "/#{type}/#{code}/index/#{fname}"
+  deldir = $TANKDIR + "/" + DELDIR
+  FileUtils.move(targetdir, deldir) if File.exist?(targetdir)
+  FileUtils.move($TANKDIR + "/" + TRASHDIR + "/" + fname, deldir)
+  FileUtils.remove(index) if File.exist?(index)
 end
 
 def delete_image(fname)
@@ -73,10 +87,11 @@ def delete_image(fname)
     when MAGDIR
       fname =~ /^(.+)-.+\.jpg$/
       $TANKDIR + "/#{type}/#{code}/" + fname
-    end    
-  File.delete(tankfile) if File.exist?(tankfile);
+    end
+  deldir = $TANKDIR + "/" + DELDIR
+  FileUtils.move(tankfile, deldir) if File.exist?(tankfile)
+  FileUtils.move($TANKDIR + "/" + TRASHDIR + "/" + fname, deldir)
 end
-
 
 main
 

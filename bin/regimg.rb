@@ -18,6 +18,8 @@ TMPDIR = '/tmp'
 EXT = '.jpg'
 INITTAG = 'notevaluated'
 FPSIZE = 8
+NRETRY = 20
+INTERVAL = 5  # 5 sec
 
 def main
   init
@@ -141,7 +143,15 @@ def insert_to_db(dimg, dstfile)
   cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! #{dstfile} PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
   fp = `#{cmd}`
   sql = "INSERT INTO images (filename, fingerprint) VALUES (?, ?)"
-  $DB.execute(sql, dimg, fp.unpack("H*"))
+  NRETRY.times do |i|
+    begin
+      $DB.execute(sql, dimg, fp.unpack("H*"))
+    rescue => e
+      STDERR.puts e
+      STDERR.puts "RETRY (#{i})"
+      sleep(INTERVAL)
+    end
+  end
 end
 
 main
