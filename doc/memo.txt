@@ -6,7 +6,8 @@
     filename varchar(256),
     fingerprint text,
     checkdate varchar(14),
-    related_id text
+    related_id text,
+    status text
   );
 
 -- commands
@@ -17,5 +18,5 @@ $ ruby ~/project/imgtank/bin/regimg.rb ~/work/testtank
 
 - add relations
 
-$ sqlite3 ~/work/testtank/tank.sqlite "select id, checkdate, fingerprint from images where checkdate <> 'deleted';" | ~/project/imgtank/src/fp | ruby ~/project/imgtank/bin/addrel.rb ~/work/testtank
+$ sqlite3 ~/work/testtank/tank.sqlite "select id, checkdate, fingerprint from images where status is null;" | ~/project/imgtank/src/fp | ruby ~/project/imgtank/bin/addrel.rb ~/work/testtank
 

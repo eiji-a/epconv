@@ -3,12 +3,8 @@
 #
 
 require 'fileutils'
-require 'rubygems'
-require 'sqlite3'
 
-DBFILE = 'tank.sqlite'
-PICDIR = 'eaepc'
-MAGDIR = 'emags'
+require_relative 'epconvlib'
 
 def main
   init
@@ -17,6 +13,8 @@ def main
     id, related = get_related(l)
     add_relation(id, related)
   end
+
+  db_close
 end
 
 def init
@@ -28,15 +26,7 @@ def init
   end
 
   $TANKDIR = ARGV[0]
-  $DB = SQLite3::Database.new($TANKDIR + "/" + DBFILE)
-end
-
-def is_tankdir(tankdir)
-  return false if Dir.exist?(tankdir) == false
-  return false if Dir.exist?(tankdir + "/" + PICDIR) == false
-  return false if Dir.exist?(tankdir + "/" + MAGDIR) == false
-  return false if File.exist?(tankdir + "/" + DBFILE) == false
-  return true
+  db_open($TANKDIR)
 end
 
 def get_related(l)
@@ -47,7 +37,7 @@ end
 def add_relation(id, related)
   sql = "UPDATE images SET checkdate = ?, related_id = ? WHERE id = ?;"
   date = Time.now.strftime "%Y%m%d%H%M%S"
-  $DB.execute(sql, date, related, id)
+  db_execute(sql, date, related, id)
   puts "ID=#{id},REL=#{related},DT=#{date}"
 end
 

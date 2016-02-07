@@ -7,19 +7,8 @@
 #
 
 require 'fileutils'
-#require 'digest/sha1'
-require 'rubygems'
-require 'sqlite3'
 
-DBFILE = 'tank.sqlite'
-PICDIR = 'eaepc'
-MAGDIR = 'emags'
-TRASHDIR = 'trash'
-DELDIR = 'deleted'
-EXT = '.jpg'
-INITTAG = 'notevaluated'
-FPSIZE = 8
-
+require_relative 'epconvlib'
 
 def main
   init
@@ -34,6 +23,8 @@ def main
       delete_image(f)
     end
   end
+
+  db_close
 end
 
 def init
@@ -44,15 +35,7 @@ def init
   end
 
   $TANKDIR = ARGV[0]
-  $DB = SQLite3::Database.new($TANKDIR + "/" + DBFILE)
-end
-
-def is_tankdir(tankdir)
-  return false if Dir.exist?(tankdir) == false
-  return false if Dir.exist?(tankdir + "/" + PICDIR) == false
-  return false if Dir.exist?(tankdir + "/" + MAGDIR) == false
-  return false if File.exist?(tankdir + "/" + DBFILE) == false
-  return true
+  db_open($TANKDIR)
 end
 
 def delete_mag(fname)
@@ -62,9 +45,9 @@ def delete_mag(fname)
   code2 = $3
   return if type != MAGDIR
   puts "F=#{fname}/T=#{type}/C=#{code}/C2=#{code2}"
-  sql = "UPDATE images SET checkdate = ? WHERE filename LIKE ?;"
+  sql = "UPDATE images SET status = ? WHERE filename LIKE ?;"
   fn = type + "-" + code + code2 + '%'
-  $DB.execute(sql, "deleted", fn)
+  db_execute(sql, "deleted", fn)
   targetdir = $TANKDIR + "/#{type}/#{code}/#{type}-#{code}#{code2}"
   index     = $TANKDIR + "/#{type}/#{code}/index/#{fname}"
   deldir = $TANKDIR + "/" + DELDIR
@@ -78,8 +61,8 @@ def delete_image(fname)
   type = $1
   code = $2
   puts "F=#{fname}/T=#{type}/C=#{$2}"
-  sql = "UPDATE images SET checkdate = ? WHERE filename = ?;"
-  $DB.execute(sql, "deleted", fname)
+  sql = "UPDATE images SET status = ? WHERE filename = ?;"
+  db_execute(sql, "deleted", fname)
   tankfile = 
     case type
     when PICDIR

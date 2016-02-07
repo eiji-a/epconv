@@ -8,18 +8,8 @@
 
 require 'fileutils'
 require 'digest/sha1'
-require 'rubygems'
-require 'sqlite3'
 
-DBFILE = 'tank.sqlite'
-PICDIR = 'eaepc'
-MAGDIR = 'emags'
-TMPDIR = '/tmp'
-EXT = '.jpg'
-INITTAG = 'notevaluated'
-FPSIZE = 8
-NRETRY = 20
-INTERVAL = 5  # 5 sec
+require_relative 'epconvlib'
 
 def main
   init
@@ -37,18 +27,14 @@ def main
   Dir.foreach(".") do |f|
     next if f =~ /^\./
     if File.directory?(f) == true
-      hs = get_hash(f)
-      dirname = get_dir(hs, MAGDIR)
-      add_imgdir(f, hs, dirname)
+      add_imgdir(f, get_hash(f))
     elsif f =~ /\.zip$/
       tname = TMPDIR + "/" + Time.now.strftime("%Y%m%d%H%M%S")
       if File.exist?(tname) == false
         FileUtils.mkdir(tname)
         FileUtils.copy(f, tname + '.zip')
-        system "unzip -d #{tname} #{tname}.zip"
-        hs = get_hash(f)
-        dirname = get_dir(hs, MAGDIR)
-        add_imgdir(tname, hs, dirname)
+        system "unzip -d #{tname} #{tname}.zip > /dev/null"
+        add_imgdir(tname, get_hash(f))
         FileUtils.remove_entry_secure(tname)
         FileUtils.rm(tname + '.zip')
       else
@@ -57,7 +43,7 @@ def main
     end
   end
   
-  $DB.close
+  db_close
 end
 
 def init
@@ -69,15 +55,12 @@ def init
 
   $DIGEST = Digest::SHA1.new
   $TANKDIR = ARGV[0]
-  $DB = SQLite3::Database.new($TANKDIR + "/" + DBFILE)
+  db_open($TANKDIR)
 end
 
-def is_tankdir(tankdir)
-  return false if Dir.exist?(tankdir) == false
-  return false if Dir.exist?(tankdir + "/" + PICDIR) == false
-  return false if Dir.exist?(tankdir + "/" + MAGDIR) == false
-  return false if File.exist?(tankdir + "/" + DBFILE) == false
-  return true
+def reg_dir(f, hs)
+  dirname = get_dir(hs, MAGDIR)
+  add_imgdir(f, hs, dirname)
 end
 
 def get_hash(f)
@@ -103,28 +86,42 @@ def get_dir(hs, picdir)
   dirname
 end
 
-def add_imgdir(sdir, hs, dirname)
+def add_imgdir(sdir, hs)
+  dirname = get_dir(hs, MAGDIR)
   num = 1
+  puts "SDIR:#{sdir}"
   Dir.foreach(sdir) do |f|
-    next if f !~ /\.jpg$/
-    dimg = MAGDIR + "-" + hs + "-" + sprintf("%04d", num) + ".jpg"
-    index_img(sdir + "/" + f, hs, dirname)
-    ddirname = dirname + "/" + MAGDIR + "-" + hs
-    Dir.mkdir(ddirname) if File.exist?(ddirname) == false
-    add_imgfile(sdir + "/" + f, dimg, ddirname, false)
-    num += 1
+    next if f =~ /^\./
+    sdir2 = sdir + "/" + f
+    if File.directory?(sdir2) == true
+      add_imgdir(sdir2, get_hash(sdir2))
+    elsif f =~ /\.jpg$/
+      dimg = MAGDIR + "-" + hs + "-" + sprintf("%04d", num) + ".jpg"
+      index_img(sdir, f, hs, dirname)
+      ddirname = dirname + "/" + MAGDIR + "-" + hs
+      Dir.mkdir(ddirname) if File.exist?(ddirname) == false
+      add_imgfile(sdir + "/" + f, dimg, ddirname, false)
+      num += 1
+    end
   end
 
 end
 
-def index_img(simg, hs, dirname)
+def index_img(sdir, img, hs, dirname)
+  simg = sdir + "/" + img
+  bdir = File.basename(sdir)
+  #puts "BDIR=#{bdir}, IMG=#{img}"
   idirname = dirname + "/index"
   Dir.mkdir(idirname) if Dir.exists?(idirname) == false
   idximg = MAGDIR + "-" + hs + "-index.jpg"
-  if simg =~ /cover/i || File.exists?(idirname + "/" + idximg) == false
+  img0  = 
+  bdir0 = 
+  if simg =~ /cover/i ||
+     img.gsub(/\([xX]\d+\)/, '') == bdir.gsub(/\([xX]\d+\)/, '') + EXT ||
+     File.exists?(idirname + "/" + idximg) == false
     dstfile = "#{idirname}/#{idximg}"
     FileUtils.copy(simg, dstfile)
-    system "tag -a #{INITTAG} #{dstfile}"
+    add_tag(dstfile, INITTAG)
   end
 end
 
@@ -143,15 +140,7 @@ def insert_to_db(dimg, dstfile)
   cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! #{dstfile} PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
   fp = `#{cmd}`
   sql = "INSERT INTO images (filename, fingerprint) VALUES (?, ?)"
-  NRETRY.times do |i|
-    begin
-      $DB.execute(sql, dimg, fp.unpack("H*"))
-    rescue => e
-      STDERR.puts e
-      STDERR.puts "RETRY (#{i})"
-      sleep(INTERVAL)
-    end
-  end
+  db_execute(sql, dimg, fp.unpack("H*"))
 end
 
 main

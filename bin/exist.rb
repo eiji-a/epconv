@@ -7,14 +7,7 @@
 #   <image>    : image file (.jpg)
 #
 
-require 'rubygems'
-require 'sqlite3'
-
-DBFILE = 'tank.sqlite'
-FPSIZE = 8
-PICDIR = 'eaepc'
-MAGDIR = 'emags'
-EXT = '.jpg'
+require_relative 'epconvlib'
 
 def main
   init
@@ -33,22 +26,18 @@ def init
 
   $TANKDIR = ARGV[0]
   $TARGET = ARGV[1]
-  $DB = SQLite3::Database.new($TANKDIR + "/" + DBFILE)
-end
-
-def is_tankdir(tankdir)
-  return false if Dir.exist?(tankdir) == false
-  return false if Dir.exist?(tankdir + "/" + PICDIR) == false
-  return false if Dir.exist?(tankdir + "/" + MAGDIR) == false
-  return false if File.exist?(tankdir + "/" + DBFILE) == false
-  return true
+  db_open($TANKDIR)
 end
 
 def find_in_db(img)
-  cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! #{img} PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
+  if File.exist?(img) == false
+    STDERR.puts "File not found: #{img}"
+    return
+  end
+  cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! '#{img}' PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
   fp = `#{cmd}`
   sql = "SELECT id, filename FROM images where fingerprint = ?"
-  $DB.execute(sql, fp.unpack("H*")) do |r|
+  db_execute(sql, fp.unpack("H*")).each do |r|
     puts "#{r[0]}:(#{r[1]})"
   end
 end
