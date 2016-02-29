@@ -95,7 +95,7 @@ def add_imgdir(sdir, hs)
     sdir2 = sdir + "/" + f
     if File.directory?(sdir2) == true
       add_imgdir(sdir2, get_hash(sdir2))
-    elsif f =~ /\.jpg$/
+    elsif f =~ /\.jpg$/i
       dimg = MAGDIR + "-" + hs + "-" + sprintf("%04d", num) + ".jpg"
       index_img(sdir, f, hs, dirname)
       ddirname = dirname + "/" + MAGDIR + "-" + hs
@@ -117,6 +117,7 @@ def index_img(sdir, img, hs, dirname)
   img0  = 
   bdir0 = 
   if simg =~ /cover/i ||
+     simg =~ /_lg\.jpg/i ||
      img.gsub(/\([xX]\d+\)/, '') == bdir.gsub(/\([xX]\d+\)/, '') + EXT ||
      File.exists?(idirname + "/" + idximg) == false
     dstfile = "#{idirname}/#{idximg}"
