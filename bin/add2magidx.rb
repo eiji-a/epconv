@@ -55,48 +55,11 @@ def init
   $IMGFILE = File.basename(ARGV[2])
 end
 
-def get_hash(f)
-  bn = File.basename(f, EXT)
-  hashsrc = bn + File.size(f).to_s + File.ctime(f).to_s + Time.now.to_s
-  $DIGEST.update(hashsrc).to_s
-end
-
-def get_imgfile(f, hs)
-  fname = ""
-  if /^#{PICDIR}-.*\.jpg/.match f
-    fname = f
-  else
-    fname = PICDIR + "-" + hs + ".jpg"
-  end
-  return f, fname
-end
-
 def get_dir(hs, picdir)
   idx = hs[0, 2]
   dirname = "#{$TANKDIR}/#{picdir}/#{idx}"
   Dir.mkdir(dirname) if Dir.exist?(dirname) == false
   dirname
-end
-
-def add_imgdir(sdir, hs)
-  dirname = get_dir(hs, MAGDIR)
-  num = 1
-  puts "SDIR:#{sdir}"
-  Dir.foreach(sdir) do |f|
-    next if f =~ /^\./
-    sdir2 = sdir + "/" + f
-    if File.directory?(sdir2) == true
-      add_imgdir(sdir2, get_hash(sdir2))
-    elsif f =~ /\.jpg$/i
-      dimg = MAGDIR + "-" + hs + "-" + sprintf("%04d", num) + ".jpg"
-      index_img(sdir, f, hs, dirname)
-      ddirname = dirname + "/" + MAGDIR + "-" + hs
-      Dir.mkdir(ddirname) if File.exist?(ddirname) == false
-      add_imgfile(sdir + "/" + f, dimg, ddirname, false)
-      num += 1
-    end
-  end
-
 end
 
 def index_img(sdir, img, hs, dirname)
