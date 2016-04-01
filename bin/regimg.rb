@@ -11,6 +11,11 @@ require 'digest/sha1'
 
 require_relative 'epconvlib'
 
+USAGE = <<-EOS
+usage: regimg.rb <tank_dir>
+  <tank_dir> : directory of image tank
+EOS
+
 def main
   init
 
@@ -19,7 +24,7 @@ def main
     next if File.directory?(f) == true
     hs = get_hash(f)
     srcimg, dstimg = get_imgfile(f, hs)
-    dirname = get_dir(hs, PICDIR)
+    dirname = get_dir(hs, $TANKDIR, PICDIR)
     add_imgfile(srcimg, dstimg, dirname, INITTAG)
   end
 #=end
@@ -48,8 +53,7 @@ end
 
 def init
   if ARGV.size != 1 || is_tankdir(ARGV[0]) == false
-    STDERR.puts "usage: regimg.rb <tank_dir>"
-    STDERR.puts "   <tank_dir> : directory of image tank"
+    STDERR.puts USAGE
     exit 1
   end
 
@@ -59,14 +63,8 @@ def init
 end
 
 def reg_dir(f, hs)
-  dirname = get_dir(hs, MAGDIR)
+  dirname = get_dir(hs, $TANKDIR, MAGDIR)
   add_imgdir(f, hs, dirname)
-end
-
-def get_hash(f)
-  bn = File.basename(f, EXT)
-  hashsrc = bn + File.size(f).to_s + File.ctime(f).to_s + Time.now.to_s
-  $DIGEST.update(hashsrc).to_s
 end
 
 def get_imgfile(f, hs)
@@ -79,15 +77,8 @@ def get_imgfile(f, hs)
   return f, fname
 end
 
-def get_dir(hs, picdir)
-  idx = hs[0, 2]
-  dirname = "#{$TANKDIR}/#{picdir}/#{idx}"
-  Dir.mkdir(dirname) if Dir.exist?(dirname) == false
-  dirname
-end
-
 def add_imgdir(sdir, hs)
-  dirname = get_dir(hs, MAGDIR)
+  dirname = get_dir(hs, $TANKDIR, MAGDIR)
   num = 1
   puts "SDIR:#{sdir}"
   Dir.foreach(sdir) do |f|
@@ -118,6 +109,7 @@ def index_img(sdir, img, hs, dirname)
   bdir0 = 
   if simg =~ /cover/i ||
      simg =~ /_lg\.jpg/i ||
+     File.size(simg) < COVERSIZE ||
      img.gsub(/\([xX]\d+\)/, '') == bdir.gsub(/\([xX]\d+\)/, '') + EXT ||
      File.exists?(idirname + "/" + idximg) == false
     dstfile = "#{idirname}/#{idximg}"

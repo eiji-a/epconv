@@ -17,6 +17,7 @@ EXCPTAG = 'excepting'
 FPSIZE = 8
 NRETRY = 20
 INTERVAL = 5  # 5 sec
+COVERSIZE = 100 * 1024 # 100kB
 
 # directories
 PICDIR = 'eaepc'
@@ -72,3 +73,17 @@ def get_tag(img)
   #puts "T=#{tag.split(/\s/)}"
   return tag.split(/\s/)[1]
 end
+
+def get_dir(hs, tankdir, picdir)
+  idx = hs[0, 2]
+  dirname = "#{tankdir}/#{picdir}/#{idx}"
+  Dir.mkdir(dirname) if Dir.exist?(dirname) == false
+  dirname
+end
+
+def get_hash(f)
+  bn = File.basename(f, EXT)
+  hashsrc = bn + File.size(f).to_s + File.ctime(f).to_s + Time.now.to_s
+  $DIGEST.update(hashsrc).to_s
+end
+

@@ -23,7 +23,7 @@ EOS
 def main
   init
 
-  dirname = get_dir($HASH, MAGDIR)
+  dirname = get_dir($HASH, $TANKDIR, MAGDIR)
   ddirname = dirname + "/" + MAGDIR + "-" + $HASH
   if File.exist?(ddirname) == false
     STDERR.puts "Invalid directory: #{ddirname}"
@@ -53,13 +53,6 @@ def init
   $HASH = ARGV[1]
   $SDIR = File.dirname(ARGV[2])
   $IMGFILE = File.basename(ARGV[2])
-end
-
-def get_dir(hs, picdir)
-  idx = hs[0, 2]
-  dirname = "#{$TANKDIR}/#{picdir}/#{idx}"
-  Dir.mkdir(dirname) if Dir.exist?(dirname) == false
-  dirname
 end
 
 def index_img(sdir, img, hs, dirname)
