@@ -1,4 +1,4 @@
-#OAOA
+#!/usr/bin/ruby
 #
 #
 
@@ -8,7 +8,12 @@ require 'sinatra/reloader'
 require_relative 'epconvlib'
 
 NIMG = 200
+NIMGPAGE = 50
 LINEIMG = 5
+
+# sort
+ST_NAME = 'n'
+ST_TIME = 't'
 
 # filters
 FL_ALL = 'all'
@@ -21,30 +26,35 @@ TYPE = {FL_FIL => 'FIL', FL_SKE => 'SKE', FL_NEV => 'NEV', FL_DEL => 'DEL'}
 def main
   init
 
-  #set :server, %w[webrick]
+  set :server, %w[webrick]
   set :bind, '192.168.11.111'
   
-  get '/top/:code?/:filter?' do |cd, filter|
-    top cd, filter
+  get '/top/:sort/:code?/:filter?' do |st, cd, filter|
+    st = ST_NAME if st == '' || st == nil
+    top st, cd, filter
   end
   
-  get '/mag/:hash/:fst?' do |hs, fst|
+  get '/mag/:st/:pg/:filter/:hash/:fst?' do |st, pg, filter, hs, fst|
     fst = '0' if fst == nil
-    mag hs, fst.to_i
+    mag st, pg, filter, hs, fst.to_i
   end
 
-  get '/change/:hs/:tag' do |hs, tag|
+  get '/page/:im/:pg/:size?' do |im, pg, sz|
+    sz = 'fit' if sz == nil
+    page im, pg, sz
+  end
+  
+  get '/change/:sort/:code/:filter/:hs/:tag' do |st, cd, filter, hs, tag|
     change_tag(hs, tag)
-    cd = hs[0..1]
-    redirect "/top/#{cd}/"
+    redirect "/top/#{st}/#{cd}/#{filter}"
   end
 
-  get '/setidx/:jpg' do |jpg|
+  get '/setidx/:pg/:filter/:jpg' do |pg, filter, jpg|
     /emags-(.+)-(\d\d\d\d).jpg/ =~ jpg
     hash = $1
     fst = ($2.to_i / 50) * 50
     set_index(hash, jpg)
-    redirect "/mag/#{hash}/#{fst}"
+    redirect "/mag/#{pg}/#{filter}/#{hash}/#{fst}"
   end
   
   get '/image/:jpg/:small?' do |jpg, s|
@@ -63,30 +73,48 @@ def init
   $TANKDIR = ARGV[0]
 end
 
-def top(cd, filter)
-  cd = '00' if cd == nil
-  filter = FL_ALL if filter == nil
-  codes = Array.new
-  Dir.glob($TANKDIR + '/' + MAGDIR + '/??') do |c|
-    codes << File.basename(c)
+def top(st, cd, filter)
+  magdir = $TANKDIR + '/' + MAGDIR
+  @pg = cd.to_i
+  @st = st
+  @filter = filter
+  tags = Hash.new
+  "0123456789abcdef".chars.each do |c|
+    tags.merge!(get_taglist(c, filter))
   end
-  return <<-EOF
-<html>
-<head>
-  <title>MAG INDEX</title>
-</head>
-<body>
-  HASH: #{cd}<br/>
-  CODE: #{code_list(codes, filter)}<br/>
-  FILTER: #{put_filter_link(cd, filter, FL_ALL)} |
-          #{put_filter_link(cd, filter, FL_FIL)} |
-          #{put_filter_link(cd, filter, FL_SKE)} |
-          #{put_filter_link(cd, filter, FL_NEV)} </br>
-#{list_html1(top_index(cd), filter)}
-</body>
-</html>
 
-EOF
+  @displist = Array.new
+  keys = tags.keys
+  keys[@pg, NIMGPAGE].each do |k|
+    @displist << [k, tags[k]]
+  end
+  @listsize = keys.size
+  erb :top
+end
+
+def get_taglist(dir, tag)
+  magdir = "#{$TANKDIR}/#{MAGDIR}"
+  ldir = "#{magdir}/#{dir}"
+  list = ""
+  if File.exist?(ldir + '.list') == false
+    File.open("#{ldir}.list", 'w') do |fp|
+      l = `tag -l #{ldir}*/index/*.jpg`
+      fp.write(l)
+      list = l
+    end
+  else
+    File.open("#{ldir}.list", 'r') do |fp|
+      list = fp.read
+    end
+  end
+
+  tags = Hash.new
+  list.lines.each do |l|
+    next if tag != FL_ALL && /#{tag}/ !~ l
+    a = l.split(/\s+/)
+    tags[a[0]] = a[1]
+  end
+  tags
 end
 
 def put_filter_link(cd, filter, type)
@@ -97,43 +125,41 @@ def put_filter_link(cd, filter, type)
   end
 end
 
-def mag(hs, fst)
-  cd = hs[0..1]
-  idxfile = "#{$TANKDIR}/emags/#{cd}/index/emags-#{hs}-index.jpg"
-  tag = `tag -l #{idxfile}`.split(/\s/)[1]
+def mag(st, pg, filter, hs, fst)
+  magdir = "#{$TANKDIR}/emags/#{hs[0..1]}"
+  @idxfile = "#{magdir}/index/emags-#{hs}-index.jpg"
+  @tag = `tag -l #{@idxfile}`.split(/\s/)[1]
+  @st = st
+  @pg = pg
+  @filter = filter
+  @hash = hs
+  @list = Array.new
+  `tag -l #{magdir}/emags-#{hs}/*.jpg`.lines.each do |l|
+    @list << l.split(/\s/)
+  end
+  erb :mag
+end
 
-  return <<-EOS
-<html>
-<head>
-  <title>MAGS:#{hs}</title>
-</head>
-<body>
-  <a href="/top/#{hs[0, 2]}/">TOP</a><br/>
-  <table>
-    <tr>
-    <td>
-    <img src="/index/#{File.basename(idxfile)}" width="200px">
-    </td>
-    <td valign="top">
-  HASH:#{hs} <br/>
-  TAG:
-  #{put_change_link(hs, tag, FL_FIL)} |
-  #{put_change_link(hs, tag, FL_SKE)} |
-  #{put_change_link(hs, tag, FL_NEV)} |
-  #{put_change_link(hs, tag, FL_DEL)} <br/>
-    </td>
-    </tr>
-  </table>
-  <!-- <a href="/mag/#{hs}/#{fst - NIMG}">PREV</a> |
-  <a href="/mag/#{hs}/#{fst + NIMG}">NEXT</a> <br/> -->
-#{list_html2(mag_index(hs), fst)}
-  <a href="/top/#{hs[0, 2]}/">TOP</a><br/>
-  <!-- <a href="/mag/#{hs}/#{fst - NIMG}">PREV</a> |
-  <a href="/mag/#{hs}/#{fst + NIMG}">NEXT</a><br/> -->
-</body>
-</html>
-EOS
-  
+def page(im, pg, sz)
+  @page  = pg.to_i
+  @pg = sprintf("%04d", @page)
+  imgbase = "#{$TANKDIR}/emags/#{im[0..1]}/emags-#{im}/emags-#{im}"
+  @npage = `ls -1 #{imgbase}*`.lines.size
+  info = `sips -g all #{imgbase}-#{@pg}.jpg`.lines
+  @px = 0
+  @py = 0
+  info.each do |i|
+    @px = i.split(/:\s+/)[1] if /pixelWidth/ =~ i
+    @py = i.split(/:\s+/)[1] if /pixelHeight/ =~ i
+  end
+  @image = im
+  @size = sz
+  @slist = {'50' => 'width="50%"',
+            '75' => 'width="75%"',
+            '100' => 'width="100%"',
+            'fit' => 'height="1050px"',
+            'org' => ''}
+  erb :page
 end
 
 def top_index(cd)
@@ -161,6 +187,31 @@ def code_list(codes, filter)
 EOF
   end
   html
+end
+
+def list_html_top(list, filter)
+  return "" if list == nil
+  html = "<table border=0>\n"
+  lcnt = 0
+  list.each do |f|
+    html += "<tr>\n" if lcnt % LINEIMG == 0
+    bn = File.basename(f)
+    /emags-(.+)-index\.jpg/ =~ f
+    hs = $1
+    html += <<-EOF
+<td valign="top">
+  <br/>
+  #{put_change_link(hs, filter, FL_FIL)} |
+  #{put_change_link(hs, filter, FL_SKE)} |
+  #{put_change_link(hs, filter, FL_NEV)} |
+  #{put_change_link(hs, filter, FL_DEL)} <br/>
+  <a href="/mag/#{hs}/#{filter}/0"><img src="/index/#{bn}" width="200px"></a><br/>
+</td>
+EOF
+    html += "</tr>\n" if lcnt % LINEIMG == LINEIMG - 1
+    lcnt += 1
+  end
+  html += "</table>\n"
 end
 
 def list_html1(list, filter)
@@ -263,13 +314,16 @@ end
 
 def change_tag(hs, tag)
   cd = hs[0..1]
-  idxfile = "#{$TANKDIR}/emags/#{cd}/index/emags-#{hs}-index.jpg"
+  magdir = "#{$TANKDIR}/emags"
+  idxfile = "#{magdir}/#{cd}/index/emags-#{hs}-index.jpg"
   system "tag -r #{FL_FIL},#{FL_SKE},#{FL_NEV} #{idxfile}"
   case tag
   when FL_FIL, FL_SKE, FL_NEV then
     system "tag -a #{tag} #{idxfile}"
   when FL_DEL then
   end
+  listfile = "#{magdir}/#{hs[0]}.list"
+  FileUtils.remove(listfile) if File.exist?(listfile)
 end
 
 def set_index(hs, jpg)
@@ -282,3 +336,4 @@ def set_index(hs, jpg)
 end
 
 main
+

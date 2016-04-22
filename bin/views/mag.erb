@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MAG: <%= @hash %></title>
+  <style type="text/css">
+    <!--
+    body {
+    font-family: Avenir;
+    font-size: 10pt;
+    }
+    -->
+  </style>
+</head>
+<body>
+  <form action="search" method="POST">
+    <a href="/top/<%= @st %>/<%= @pg %>/<%= @filter %>">TOP</a>
+    <input type="text" name="hash" size="40">
+    <input type="submit" value="SEARCH">
+  </form>
+
+  <table>
+    <tr>
+    <td>
+    <img src="/index/<%= File.basename(@idxfile) %>" width="200px">
+    </td>
+    <td valign="top">
+      HASH: <%= @hash %> <br />
+      PAGE: <%= @list.size %> <br />
+      TAG:
+      <% TYPE.each_key do |k| %>
+      <%   if k == @tag %>
+        <%= TYPE[k] %>
+      <%   else %>
+      <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @hash %>/<%= k %>">
+        <%= TYPE[k] %>
+      </a>
+      <%   end %>
+      <% end %>
+      <br/>
+    </td>
+    </tr>
+  </table>
+
+  <table border="0">
+  <% lcnt = 0 %>
+  <% @list.each do |d| %>
+    <% if lcnt % LINEIMG == 0 %>
+    <tr>
+    <% end %>
+    <% bn = File.basename(d[0]) %>
+    <% /emags-(.+)-(\d+).jpg/ =~ bn %>
+    <% im = $1 %>
+    <% id = $2 %>
+    <td valign="top">
+      <%= id %>
+      <a href="/setidx/<%= @pg %>/<%= @filter %>/<%= bn %>">IDX</a> /
+      <a href="/delimage/<%= bn %>">DEL</a>
+      <br />
+      <a href="/page/<%= im %>/<%= id %>/100" target="_view/">
+        <img src="/image/<%= bn %>/s">
+      </a>
+    </td>
+    <% if lcnt % LINEIMG == LINEIMG - 1 %>
+    </tr>
+    <% end %>
+    <% lcnt += 1 %>
+  <% end %>
+  </table>
+  <a href="/top/<%= @st %>/<%= @hash[0, 2] %>/">TOP</a><br/>
+
+</body>
+</html>

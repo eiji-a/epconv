@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PAGE: <%= @image %></title>
+  <style type="text/css">
+    <!--
+    body {
+    font-family: Avenir;
+    font-size: 10pt;
+    }
+    -->
+  </style>
+</head>
+<body>
+  PAGE :
+    <% if @page > 1 %>
+    <a href="/page/<%= @image %>/1/<%= @size %>">1</a>
+    ..
+    <a href="/page/<%= @image %>/<%= @page - 1 %>/<%= @size %>"><%= @page - 1 %></a>
+    <% end %>
+    <%= @page %>
+    <% if @page < @npage %>
+    <a href="/page/<%= @image %>/<%= @page + 1 %>/<%= @size %>"><%= @page + 1 %></a>
+    ..
+    <a href="/page/<%= @image %>/<%= @npage %>/<%= @size %>"><%= @npage %></a>
+    <% end %>
+    <br />
+  SCALE (<%= @px %> X <%= @py %>):
+    <% @slist.keys.each do |s| %>
+    <%   if @size == s %>
+           <%= @size %>
+    <%   else %>
+           <a href="/page/<%= @image %>/<%= @page %>/<%= s %>"><%= s %></a>
+    <%   end %>
+    <% end %>
+    <br />
+  <center>
+    <% sz = if @size == 'org' then '100' else 'org' end %>
+    <a href="/page/<%= @image %>/<%= @page %>/<%= sz %>">
+    <img src="/image/emags-<%= @image %>-<%= @pg %>.jpg/" <%= @slist[@size] %>>
+    </a>
+  </center>
+
+</body>
+</html>

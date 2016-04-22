@@ -95,7 +95,8 @@ def add_imgdir(sdir, hs)
       num += 1
     end
   end
-
+  listfile = "#{$TANKDIR}/#{MAGDIR}/#{hs[0]}.list"
+  FileUtils.remove(listfile) if File.exist?(listfile)
 end
 
 def index_img(sdir, img, hs, dirname)
