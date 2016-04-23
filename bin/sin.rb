@@ -11,18 +11,6 @@ NIMG = 200
 NIMGPAGE = 50
 LINEIMG = 5
 
-# sort
-ST_NAME = 'n'
-ST_TIME = 't'
-
-# filters
-FL_ALL = 'all'
-FL_FIL = 'filed'
-FL_SKE = 'forsketch'
-FL_NEV = 'notevaluated'
-FL_DEL = 'delete'
-TYPE = {FL_FIL => 'FIL', FL_SKE => 'SKE', FL_NEV => 'NEV', FL_DEL => 'DEL'}
-
 def main
   init
 
@@ -321,6 +309,8 @@ def change_tag(hs, tag)
   when FL_FIL, FL_SKE, FL_NEV then
     system "tag -a #{tag} #{idxfile}"
   when FL_DEL then
+    trash = "#{$TANKDIR}/#{TRASHDIR}"
+    FileUtils.move(idxfile, trash) if File.exist?(idxfile)
   end
   listfile = "#{magdir}/#{hs[0]}.list"
   FileUtils.remove(listfile) if File.exist?(listfile)

@@ -22,8 +22,8 @@
   <% TYPE.each_key do |k| %>
   <%   if @filter == k %>
   <%=    k %>
-  <%   elsif k == FL_DEL  %>
-  <%= "" %>
+  <%   elsif k == DEL %>
+  <%=    "" %>
   <%   else  %>
     <a href="/top/<%= @st %>/0/<%= k %>"><%= k %></a> 
   <%   end %>

@@ -31,6 +31,24 @@ ST_DELETE = 'deleted'
 ST_DEDUP  = 'dedup'
 ST_EXCEPT = 'excepted'
 
+# filters
+FL_ALL = 'all'
+FL_FIL = 'filed'
+FL_SKE = 'forsketch'
+FL_NEV = 'notevaluated'
+FL_DEL = 'delete'
+TYPE = {FL_FIL => 'FIL', FL_SKE => 'SKE', FL_NEV => 'NEV', FL_DEL => 'DEL'}
+
+# sort
+ST_NAME = 'n'
+ST_TIME = 't'
+
+# file type
+FILE_PIC   = 'pic'
+FILE_MAG   = 'mag'
+FILE_PAGE  = 'magpage'
+FILE_INDEX = 'magindex'
+
 # METHODS
 # -------------------------
 
@@ -85,5 +103,53 @@ def get_hash(f)
   bn = File.basename(f, EXT)
   hashsrc = bn + File.size(f).to_s + File.ctime(f).to_s + Time.now.to_s
   $DIGEST.update(hashsrc).to_s
+end
+
+def get_path(f)
+  kind, type, cd, hash, id = analyze_file(f)
+  cdpath = "#{$TANKDIR}/#{type}/#{cd}/"
+  path = case kind
+         when FILE_INDEX
+           cdpath + 'index/'
+         when FILE_MAG
+           cdpath
+         when FILE_PAGE
+           cdpath + "#{type}-#{hash}/"
+         when FILE_PIC
+           cdpath
+         else
+           ""
+         end
+  cdpath, path, path + f
+end
+
+def analyze_file(f)
+  kind = MAGDIR
+  type = cd = hash = id = nil
+  case f
+  when /^eaepc-.+\d.jpg$/ =~ f
+    /^eaepc-(..)(.+)\.jpg$/ =~ f
+    kind = PICDIR
+    type = FILE_PIC
+    cd   = $1
+    hash = $1 + $2
+  when /^emags-.+-index\.jpg$/ =~ f
+    /^emags-(..)(.+)-index\.jpg$/ =~ f
+    type = FILE_INDEX
+    cd   = $1
+    hash = $1 + $2
+  when /^emags-.+-\d+\.jpg$/ =~ f
+    /^emags-(..)(.+)-(\d+)\.jpg$/ =~ f
+    type = FILE_PAGE
+    cd   = $1
+    hash = $1 + $2
+    id   = $3
+  else
+    /^emags-(..)(.+)$/ =~ f
+    type = FILE_MAG
+    cd   = $1
+    hash = $1 + $2
+  end
+  kind, type, cd, hash, id
 end
 

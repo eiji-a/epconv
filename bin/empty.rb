@@ -13,10 +13,9 @@ require_relative 'epconvlib'
 def main
   init
 
-  trashdir = $TANKDIR + "/" + TRASHDIR
-  Dir.foreach(trashdir) do |f|
+  Dir.foreach(@trashdir) do |f|
     next if f =~ /^\./
-    next if File.file?(trashdir + "/" + f) == false
+    next if File.file?(@trashdir + f) == false
     if f =~ /-index\.jpg$/
       delete_mag(f)
     else
@@ -36,33 +35,37 @@ def init
 
   $TANKDIR = ARGV[0]
   db_open($TANKDIR)
+  @trashdir = "#{$TANKDIR}/#{TRASHDIR}/"
 end
 
-def delete_mag(fname)
-  fname =~ /^(.+?)-(..)(.+)-index\.jpg$/
-  type = $1
-  code = $2
+def delete_mag(index)
+  kind, type, cd, hash, id = analyze_file(index)
   code2 = $3
   return if type != MAGDIR
-  puts "F=#{fname}/T=#{type}/C=#{code}/C2=#{code2}"
+  puts "F=#{index}/T=#{type}/C=#{code}/C2=#{hash}"
   sql = "UPDATE images SET status = ? WHERE filename LIKE ?;"
-  fn = type + "-" + code + code2 + '%'
+  fn = "#{type}-#{hash}%"
   db_execute(sql, "deleted", fn)
-  targetdir = $TANKDIR + "/#{type}/#{code}/#{type}-#{code}#{code2}"
-  index     = $TANKDIR + "/#{type}/#{code}/index/#{fname}"
-  deldir = $TANKDIR + "/" + DELDIR
+  cdpath = "#{$TANKDIR}/#{type}/#{code}/"
+  targetdir = cdpath + "#{type}-#{hash}"
+  fullindex = cdpath + "index/#{index}"
+  deldir = "#{$TANKDIR}/#{DELDIR}/"
   FileUtils.move(targetdir, deldir) if File.exist?(targetdir)
-  FileUtils.move($TANKDIR + "/" + TRASHDIR + "/" + fname, deldir)
-  FileUtils.remove(index) if File.exist?(index)
+  FileUtils.move(@trashdir + index, deldir)
+  FileUtils.remove(fullindex) if File.exist?(fullindex)
 end
 
 def delete_image(fname)
+=begin
   fname =~ /^(.+?)-(..).+\.jpg$/
   type = $1
   code = $2
-  puts "F=#{fname}/T=#{type}/C=#{$2}"
+=end
+  d0, type, cd, d1, d2 = analyze_file(fname)
+  puts "F=#{fname}/T=#{type}/C=#{cd}"
   sql = "UPDATE images SET status = ? WHERE filename = ?;"
   db_execute(sql, "deleted", fname)
+=begin
   tankfile = 
     case type
     when PICDIR
@@ -71,9 +74,11 @@ def delete_image(fname)
       fname =~ /^(.+)-.+\.jpg$/
       $TANKDIR + "/#{type}/#{code}/" + fname
     end
+=end
+  d0, tankfile = get_path(fname)
   deldir = $TANKDIR + "/" + DELDIR
   FileUtils.move(tankfile, deldir) if File.exist?(tankfile)
-  FileUtils.move($TANKDIR + "/" + TRASHDIR + "/" + fname, deldir)
+  FileUtils.move(@trashdir + fname, deldir)
 end
 
 main
