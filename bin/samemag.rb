@@ -11,7 +11,7 @@ require 'fileutils'
 require_relative 'epconvlib'
 
 USAGE = <<-EOS
-usage: exist.rb <tank_dir> <image>
+usage: samemag.rb <tank_dir> 
   <tank_dir> : directory of image tank
 EOS
 
@@ -32,7 +32,7 @@ def init
     exit 1
   end
 
-  $TANKDIR = ARGV[0]
+  $TANKDIR = ARGV[0] + '/'
   db_open($TANKDIR)
   @magpairs = Hash.new
 end
@@ -70,10 +70,9 @@ end
 def proc_2files(files)
   k0 = files[0].split(/-/)[0]
   k1 = files[1].split(/-/)[0]
-  if k0 == PICDIR && k1 == PICDIR
+  if k0 == FILE_PIC && k1 == FILE_PIC
     proc_pics(files, k0, k1)
-  elsif k0 == MAGDIR && k1 == MAGDIR
-    puts "MAGS"
+  elsif k0 == FILE_MAG && k1 == FILE_MAG
     proc_mags(files)
   else
     proc_pics(files, k0, k1)
@@ -102,7 +101,7 @@ def proc_pics(files, kind0, kind1)
     dfile = f1
     dfile = f0 if tg1 == FILETAG || tg0 == INITTAG
     if (sz0 - sz1).abs < 1024
-      FileUtils.move(dfile, "#{$TANKDIR}/#{TRASHDIR}")
+      FileUtils.move(dfile, $TANKDIR + TRASHDIR)
     else
       puts "same:"
       puts files.join("\n")
@@ -111,8 +110,8 @@ def proc_pics(files, kind0, kind1)
     tag = if tg1 == FILETAG || tg0 == INITTAG then tg1 else tg0 end
     change_tag(f0, tag)
     change_tag(f1, tag)
-    dfile = if kind1 == MAGDIR then f0 else f1 end
-    FileUtils.move(dfile, "#{$TANKDIR}/#{TRASHDIR}")
+    dfile = if kind1 == FILE_MAG then f0 else f1 end
+    FileUtils.move(dfile, $TANKDIR + TRASHDIR)
   end
 end
 
@@ -135,7 +134,7 @@ def get_fullpath(file)
   kind = file.split(/-/)[0]
   /#{kind}-(..)/ =~ file
   hs = $1
-  if kind == PICDIR
+  if kind == FILE_PIC
     "#{$TANKDIR}/#{kind}/#{hs}/#{file}"
   else
     /^(.+)-\d+\.jpg/ =~ file
@@ -151,7 +150,7 @@ end
 def puts_pair(key, val)
   print "#{key[0]}:#{key[1]}="
   val.each do |a|
-    print "(#{a[0]},#{a[1]}),"
+    print "(#{a[0]},#{a[1]}):"
   end
   puts ""
 end

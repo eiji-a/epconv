@@ -33,8 +33,8 @@ def main
     next if f =~ /^\./
     if File.directory?(f) == true
       add_imgdir(f, get_hash(f))
-    elsif f =~ /\.zip$/
-      tname = TMPDIR + "/" + Time.now.strftime("%Y%m%d%H%M%S")
+    elsif f =~ /\.zip$/i
+      tname = TMPDIR + Time.now.strftime("%Y%m%d%H%M%S")
       if File.exist?(tname) == false
         FileUtils.mkdir(tname)
         FileUtils.copy(f, tname + '.zip')
@@ -52,27 +52,27 @@ def main
 end
 
 def init
-  if ARGV.size != 1 || is_tankdir(ARGV[0]) == false
+  $TANKDIR = ARGV[0] + '/'
+  if ARGV.size != 1 || is_tankdir($TANKDIR) == false
     STDERR.puts USAGE
     exit 1
   end
 
   $DIGEST = Digest::SHA1.new
-  $TANKDIR = ARGV[0]
   db_open($TANKDIR)
 end
 
 def reg_dir(f, hs)
-  dirname = get_dir(hs, $TANKDIR, MAGDIR)
+  dirname = get_dir(hs, $TANKDIR, FILE_MAG)
   add_imgdir(f, hs, dirname)
 end
 
 def get_imgfile(f, hs)
   fname = ""
-  if /^#{PICDIR}-.*\.jpg/.match f
+  if /^#{FILE_PIC}-.*\.jpg/.match f
     fname = f
   else
-    fname = PICDIR + "-" + hs + ".jpg"
+    fname = FILE_PIC + "-" + hs + ".jpg"
   end
   return f, fname
 end
@@ -87,15 +87,15 @@ def add_imgdir(sdir, hs)
     if File.directory?(sdir2) == true
       add_imgdir(sdir2, get_hash(sdir2))
     elsif f =~ /\.jpg$/i
-      dimg = MAGDIR + "-" + hs + "-" + sprintf("%04d", num) + ".jpg"
+      dimg = FILE_MAG + "-" + hs + "-" + sprintf("%04d", num) + ".jpg"
       index_img(sdir, f, hs, dirname)
-      ddirname = dirname + "/" + MAGDIR + "-" + hs
+      ddirname = dirname + FILE_MAG + "-" + hs
       Dir.mkdir(ddirname) if File.exist?(ddirname) == false
       add_imgfile(sdir + "/" + f, dimg, ddirname, false)
       num += 1
     end
   end
-  listfile = "#{$TANKDIR}/#{MAGDIR}/#{hs[0]}.list"
+  listfile = $TANKDIR + MAGDIR + "#{hs[0]}.list"
   FileUtils.remove(listfile) if File.exist?(listfile)
 end
 
@@ -105,15 +105,13 @@ def index_img(sdir, img, hs, dirname)
   #puts "BDIR=#{bdir}, IMG=#{img}"
   idirname = dirname + "/index"
   Dir.mkdir(idirname) if Dir.exists?(idirname) == false
-  idximg = MAGDIR + "-" + hs + "-index.jpg"
-  img0  = 
-  bdir0 = 
+  idximg = FILE_MAG + "-" + hs + "-index.jpg"
+  dstfile = "#{idirname}/#{idximg}"
   if simg =~ /cover/i ||
      simg =~ /_lg\.jpg/i ||
      File.size(simg) < COVERSIZE ||
      img.gsub(/\([xX]\d+\)/, '') == bdir.gsub(/\([xX]\d+\)/, '') + EXT ||
-     File.exists?(idirname + "/" + idximg) == false
-    dstfile = "#{idirname}/#{idximg}"
+     File.exists?(dstfile) == false
     FileUtils.copy(simg, dstfile)
     add_tag(dstfile, INITTAG)
   end

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MAG INDEX</title>
+  <style type="text/css">
+    <!--
+    body {
+    font-family: Avenir;
+    font-size: 10pt;
+    }
+    -->
+  </style>
+</head>
+<body>
+  FILTER:
+  <% if @filter == FL_ALL %>
+       all
+  <% else %>
+    <a href="/top/<%= @st %>/<%= @pg %>/all">all</a>
+  <% end %>
+  <% TYPE.each_key do |k| %>
+  <%   if @filter == k %>
+  <%=    k %>
+  <%   elsif k == FL_DEL %>
+  <%=    "" %>
+  <%   else  %>
+    <a href="/top/<%= @st %>/0/<%= k %>"><%= k %></a> 
+  <%   end %>
+  <% end %>
+  <br />
+  PAGE(<%= @filter %>/<%= @listsize %>):
+    <a href="/top/<%= @st %>/0/<%= @filter %>">1</a>
+    <% if @pg - NIMGPAGE > 0 %>
+    ..
+    <a href="/top/<%= @st %>/<%= @pg - NIMGPAGE %>/<%= @filter %>">
+    <%= @pg / NIMGPAGE %></a>
+    <% end %>
+    <%= @pg / NIMGPAGE + 1 %>
+    <% if @pg + NIMGPAGE < @listsize %>
+    <a href="/top/<%= @st %>/<%= @pg + NIMGPAGE %>/<%= @filter %>">
+    <%= @pg / NIMGPAGE + 2 %></a>
+    ..
+    <a href="/top/<%= @st %>/<%= ((@listsize - 1)/NIMGPAGE) * NIMGPAGE %>/<%= @filter %>">
+    <%= @listsize / NIMGPAGE + 1 %></a>
+    <% end %>
+    <br />
+
+  <table border="0">
+    <% lcnt = 0 %>
+    <% @displist.each do |d| %>
+      <% if lcnt % LINEIMG == 0 %>
+      <tr>
+      <% end %>
+      <% bn = File.basename(d[0]) %>
+      <% /emags-(.+)-index\.jpg/ =~ d[0] %>
+      <% hs = $1 %>
+        <td valign="top">
+          <br />
+          <% TYPE.each_key do |k| %>
+          <%   if k == d[1] %>
+          <%=    TYPE[k] %>
+          <%   else %>
+          <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= hs %>/0000/<%= k %>">
+            <%= TYPE[k] %>
+          </a>
+          <%   end %>
+          <% end %>
+          <br />
+          <a href="/mag/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= hs %>/0">
+            <img src="/index/<%= bn %>" width="200px">
+          </a><br />
+        </td>
+      <% if lcnt % LINEIMG == LINEIMG - 1 %>
+      </tr>
+      <% end %>
+      <% lcnt += 1 %>
+    <% end %>
+  </table>
+  PAGE(<%= @filter %>/<%= @listsize %>):
+    <a href="/top/<%= @st %>/0/<%= @filter %>">1</a>
+    <% if @pg - NIMGPAGE > 0 %>
+    ..
+    <a href="/top/<%= @st %>/<%= @pg - NIMGPAGE %>/<%= @filter %>">
+    <%= @pg / NIMGPAGE %></a>
+    <% end %>
+    <%= @pg / NIMGPAGE + 1 %>
+    <% if @pg + NIMGPAGE < @listsize %>
+    <a href="/top/<%= @st %>/<%= @pg + NIMGPAGE %>/<%= @filter %>">
+    <%= @pg / NIMGPAGE + 2 %></a>
+    ..
+    <a href="/top/<%= @st %>/<%= ((@listsize - 1)/NIMGPAGE) * NIMGPAGE %>/<%= @filter %>">
+    <%= @listsize / NIMGPAGE + 1 %></a>
+    <% end %>
+   <br />
+ 
+</body>
+</html>

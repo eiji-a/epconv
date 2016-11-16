@@ -24,7 +24,7 @@ def main
   init
 
   dirname = get_dir($HASH, $TANKDIR, MAGDIR)
-  ddirname = dirname + "/" + MAGDIR + "-" + $HASH
+  ddirname = dirname + "/" + FILE_MAG + "-" + $HASH
   if File.exist?(ddirname) == false
     STDERR.puts "Invalid directory: #{ddirname}"
     STDERR.puts USAGE
@@ -32,7 +32,7 @@ def main
   end
   
   n = Dir.glob(ddirname + "/*.jpg").size
-  dimg = MAGDIR + "-" + $HASH + "-" + sprintf("%04d", n+1) + ".jpg"
+  dimg = FILE_MAG + "-" + $HASH + "-" + sprintf("%04d", n+1) + ".jpg"
   index_img($SDIR, $IMGFILE, $HASH, dirname)
   add_imgfile($SDIR + "/" + $IMGFILE, dimg, ddirname, false)
   
@@ -40,14 +40,15 @@ def main
 end
 
 def init
-  if ARGV.size != 3 || is_tankdir(ARGV[0]) == false ||
+  $TANKDIR = ARGV[0] + '/'
+  if ARGV.size != 3 || is_tankdir($TANKDIR) == false ||
      File.exist?(ARGV[2]) == false
+    puts "F:#{ARGV[2]}"
     STDERR.puts USAGE
     exit 1
   end
 
   $DIGEST = Digest::SHA1.new
-  $TANKDIR = ARGV[0]
   db_open($TANKDIR)
 
   $HASH = ARGV[1]
@@ -61,7 +62,7 @@ def index_img(sdir, img, hs, dirname)
   #puts "BDIR=#{bdir}, IMG=#{img}"
   idirname = dirname + "/index"
   Dir.mkdir(idirname) if Dir.exists?(idirname) == false
-  idximg = MAGDIR + "-" + hs + "-index.jpg"
+  idximg = FILE_MAG + "-" + hs + "-index.jpg"
   img0  = 
   bdir0 = 
   dstfile = "#{idirname}/#{idximg}"

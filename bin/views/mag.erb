@@ -32,7 +32,7 @@
       <%   if k == @tag %>
         <%= TYPE[k] %>
       <%   else %>
-      <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @hash %>/<%= k %>">
+      <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @hash %>/0000/<%= k %>">
         <%= TYPE[k] %>
       </a>
       <%   end %>
@@ -55,7 +55,17 @@
     <td valign="top">
       <%= id %>
       <a href="/setidx/<%= @pg %>/<%= @filter %>/<%= bn %>">IDX</a> /
-      <a href="/delimage/<%= bn %>">DEL</a>
+      <% TYPE.each_key do |k| %>
+      <%   if k == d[1] %>
+      <%=    TYPE[k] %>
+      <%   else %>
+      <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @hash %>/<%= id %>/<%= k %>">
+        <%= TYPE[k] %>
+      </a>
+      <%   end %>
+      <% end %>
+      <br />
+      <%= @sizes[bn] %>
       <br />
       <a href="/page/<%= im %>/<%= id %>/100" target="_view/">
         <img src="/image/<%= bn %>/s">

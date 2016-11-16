@@ -6,6 +6,12 @@ require 'fileutils'
 
 require_relative 'epconvlib'
 
+USAGE = <<-EOS
+Usage: cat <relation> | addrel.rb <tank_dir>
+  <relation> : information of relation
+  <tank_dir> : directory of image tank
+EOS
+
 def main
   init
   
@@ -18,14 +24,12 @@ def main
 end
 
 def init
-  if ARGV.size != 1 || is_tankdir(ARGV[0]) == false
-    STDERR.puts "Usage: cat <relation> | addrel.rb <tank_dir>"
-    STDERR.puts "   <relation> : information of relation"
-    STDERR.puts "   <tank_dir> : directory of image tank"
+  $TANKDIR = ARGV[0] + '/'
+  if ARGV.size != 1 || is_tankdir($TANKDIR) == false
+    STDERR.puts USAGE
     exit 1
   end
 
-  $TANKDIR = ARGV[0]
   db_open($TANKDIR)
 end
 

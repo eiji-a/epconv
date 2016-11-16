@@ -1,0 +1,10 @@
+
+          <% TYPE.each_key do |k| %>
+          <%   if k == tag %>
+          <%=    TYPE[k] %>
+          <%   else %>
+          <a href="/change/<%= @pg %>/<%= @filter %>/<%= hs %>/<%= k %>">
+          <%=    TYPE[k] %>
+          </a>
+          <%   end %>
+          <% end %>

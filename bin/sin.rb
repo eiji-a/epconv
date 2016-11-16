@@ -8,7 +8,8 @@ require 'sinatra/reloader'
 require_relative 'epconvlib'
 
 NIMG = 200
-NIMGPAGE = 50
+#NIMGPAGE = 50
+NIMGPAGE = 10
 LINEIMG = 5
 
 def main
@@ -16,10 +17,14 @@ def main
 
   set :server, %w[webrick]
   set :bind, '192.168.11.111'
+
+  # for page
   
-  get '/top/:sort/:code?/:filter?' do |st, cd, filter|
+  get '/top/:sort?/:pg?/:filter?' do |st, pg, filter|
     st = ST_NAME if st == '' || st == nil
-    top st, cd, filter
+    pg = 1 if pg.to_i == nil
+    filter = 'all' if filter == nil
+    top st, pg, filter
   end
   
   get '/mag/:st/:pg/:filter/:hash/:fst?' do |st, pg, filter, hs, fst|
@@ -31,10 +36,24 @@ def main
     sz = 'fit' if sz == nil
     page im, pg, sz
   end
+
+  get '/same/' do
+    same
+  end
+
+  get '/samedtl/:hash1/:hash2' do |hs1, hs2|
+    samedtl hs1, hs2
+  end
   
-  get '/change/:sort/:code/:filter/:hs/:tag' do |st, cd, filter, hs, tag|
-    change_tag(hs, tag)
-    redirect "/top/#{st}/#{cd}/#{filter}"
+  # for manipulate
+  
+  get '/change/:sort/:pg/:filter/:hs/:id/:tag' do |st, pg, filter, hs, id, tag|
+    change_tag(hs, id, tag)
+    if id == '0000'
+      redirect "/top/#{st}/#{pg}/#{filter}"
+    else
+      redirect "/mag/#{st}/#{pg}/#{filter}/#{hs}/0"
+    end
   end
 
   get '/setidx/:pg/:filter/:jpg' do |pg, filter, jpg|
@@ -42,8 +61,10 @@ def main
     hash = $1
     fst = ($2.to_i / 50) * 50
     set_index(hash, jpg)
-    redirect "/mag/#{pg}/#{filter}/#{hash}/#{fst}"
+    redirect "/mag/n/#{pg}/#{filter}/#{hash}/#{fst}"
   end
+
+  # for parts
   
   get '/image/:jpg/:small?' do |jpg, s|
     s = if s == nil then false else true end
@@ -58,11 +79,12 @@ def main
 end
 
 def init
-  $TANKDIR = ARGV[0]
+  $TANKDIR = ARGV[0] + '/'
+  $MAGDIR = $TANKDIR + MAGDIR
 end
 
 def top(st, cd, filter)
-  magdir = $TANKDIR + '/' + MAGDIR
+  #magdir = $TANKDIR + MAGDIR
   @pg = cd.to_i
   @st = st
   @filter = filter
@@ -73,7 +95,7 @@ def top(st, cd, filter)
 
   @displist = Array.new
   keys = tags.keys
-  keys[@pg, NIMGPAGE].each do |k|
+  keys[(@pg - 1) * NIMGPAGE, NIMGPAGE].each do |k|
     @displist << [k, tags[k]]
   end
   @listsize = keys.size
@@ -81,8 +103,7 @@ def top(st, cd, filter)
 end
 
 def get_taglist(dir, tag)
-  magdir = "#{$TANKDIR}/#{MAGDIR}"
-  ldir = "#{magdir}/#{dir}"
+  ldir = $MAGDIR + dir
   list = ""
   if File.exist?(ldir + '.list') == false
     File.open("#{ldir}.list", 'w') do |fp|
@@ -114,7 +135,7 @@ def put_filter_link(cd, filter, type)
 end
 
 def mag(st, pg, filter, hs, fst)
-  magdir = "#{$TANKDIR}/emags/#{hs[0..1]}"
+  magdir = $MAGDIR + "#{hs[0..1]}"
   @idxfile = "#{magdir}/index/emags-#{hs}-index.jpg"
   @tag = `tag -l #{@idxfile}`.split(/\s/)[1]
   @st = st
@@ -125,22 +146,17 @@ def mag(st, pg, filter, hs, fst)
   `tag -l #{magdir}/emags-#{hs}/*.jpg`.lines.each do |l|
     @list << l.split(/\s/)
   end
+  @sizes, @total = read_magsize(hs)
   erb :mag
 end
 
-def page(im, pg, sz)
+def page(hs, pg, sz)
   @page  = pg.to_i
   @pg = sprintf("%04d", @page)
-  imgbase = "#{$TANKDIR}/emags/#{im[0..1]}/emags-#{im}/emags-#{im}"
+  imgbase = $MAGDIR + "#{hs[0..1]}/emags-#{hs}/emags-#{hs}"
   @npage = `ls -1 #{imgbase}*`.lines.size
-  info = `sips -g all #{imgbase}-#{@pg}.jpg`.lines
-  @px = 0
-  @py = 0
-  info.each do |i|
-    @px = i.split(/:\s+/)[1] if /pixelWidth/ =~ i
-    @py = i.split(/:\s+/)[1] if /pixelHeight/ =~ i
-  end
-  @image = im
+  @info = get_info("#{imgbase}-#{@pg}.jpg")
+  @image = hs
   @size = sz
   @slist = {'50' => 'width="50%"',
             '75' => 'width="75%"',
@@ -150,9 +166,116 @@ def page(im, pg, sz)
   erb :page
 end
 
+def get_info(file)
+  fsize = File.size?(file)
+  info = `sips -g all #{file}`.lines
+  px = 0
+  py = 0
+  info.each do |i|
+    px = i.chomp.split(/:\s+/)[1] if /pixelWidth/ =~ i
+    py = i.chomp.split(/:\s+/)[1] if /pixelHeight/ =~ i
+  end
+  return [fsize.to_s.gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1,'), px, py]
+end
+
+def read_magsize(hs)
+  cd = hs[0..1]
+  mag = $TANKDIR + MAGDIR + cd + "/emags-#{hs}"
+  if Dir.exist?("#{mag}/s") == false
+    FileUtils.mkdir("#{mag}/s")
+  end
+  if File.exist?("#{mag}/s/images") == false
+    File.open("#{mag}/s/images", 'w') do |fp|
+      `ls -l #{mag}/*.jpg`.lines.each do |l|
+        info = l.split
+        fp.puts "#{File.basename(info[8])} #{info[4]}"
+      end
+    end
+  end
+  h = Hash.new
+  sz = 0
+  File.open("#{mag}/s/images", 'r') do |fp|
+    fp.each_line do |l|
+      info = l.split
+      h[info[0]] = info[1].gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1,')
+      sz += info[1].to_i
+    end
+  end
+  return [h, sz.to_s.gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1,')]
+end
+
+def same()
+  @sames = Array.new
+  emag = $TANKDIR + MAGDIR
+  File.open($TANKDIR + 'samemag.log', 'r') do |fp|
+    fp.each do |l|
+      if /^emags/ =~ l
+        /^emags-(.+?):emags-(.+?)=(.+)$/ =~ l
+        hs1 = $1
+        hs2 = $2
+        idx = $3
+        h1, s1 = read_magsize(hs1)
+        h2, s2 = read_magsize(hs2)
+        idx1 = emag + hs1[0..1] + "/index/emags-#{hs1}-index.jpg"
+        t1   = `tag -l #{idx1}`.split(/\s/)[1]
+        idx2 = emag + hs2[0..1] + "/index/emags-#{hs2}-index.jpg"
+        t2   = `tag -l #{idx2}`.split(/\s/)[1]
+        sp   = split_idx(idx)
+        if (s1 == s2) and
+           (h1.size == h2.size) and
+           (h1.size == sp.size)
+          change_tag(hs2, '0000', FL_DEL)
+        else
+          @sames << [[hs1, h1, s1, t1],
+                     [hs2, h2, s2, t2],
+                     sp]
+        end
+      end
+    end
+  end
+  erb :same
+end
+
+def samedtl(hash1, hash2)
+  @sames = Array.new
+  File.open($TANKDIR + 'samemag.log', 'r') do |fp|
+    fp.each do |l|
+      if /^emags-#{hash1}:?emags-#{hash2}=(.+)/ =~ l
+        @sames = split_idx($1)
+      end
+    end
+  end
+  @files = Array.new
+  @sames.each do |s|
+    f1 = $MAGDIR + "#{hash1[0..1]}/emags-#{hash1}/emags-#{hash1}-#{s[0]}.jpg"
+    f2 = $MAGDIR + "#{hash2[0..1]}/emags-#{hash2}/emags-#{hash2}-#{s[1]}.jpg"
+    @files << [[s[0], get_info(f1)].flatten, [s[1], get_info(f2)].flatten]
+    #@files << {s[0] => f1, s[1] => f2}
+  end
+  @hash = [hash1, hash2]
+  erb :samedtl
+end
+
+def get_maginfo(hs)
+  cdpath, path, pathf = get_path("emags-" + hs)
+  sz = `du -ks #{pathf}`.to_i
+  ni = `ls -1 #{pathf}/`.to_i
+  return [hs, sz, ni]
+end
+
+def split_idx(idxs)
+  pair = Array.new
+  idxs.split(/:/).each do |i|
+    next if i == '' || i == nil
+    /\((\d+),(\d+)\)/ =~ i
+    pair << [$1, $2]
+  end
+  pair
+end
+
 def top_index(cd)
   files = Array.new
-  Dir.glob("#{$TANKDIR}/emags/#{cd}/index/*.jpg") do |f|
+  Dir.glob($MAGDIR + "#{cd}/index/*.jpg") do |f|
     files << f
   end
   files
@@ -268,7 +391,7 @@ end
 def image(jpg, s)
   /^emags-(.+)-\d\d\d\d\.jpg+$/ =~ jpg
   hs2 = $1[0..1]
-  magd = "#{$TANKDIR}/emags/#{hs2}/emags-#{$1}"
+  magd = $MAGDIR + "#{hs2}/emags-#{$1}"
   f = magd + '/' + jpg
   if s == true
     smdir = magd + '/s'
@@ -290,7 +413,7 @@ end
 def index(jpg)
   /^emags-(..)/ =~ jpg
   hs2 = $1
-  file = "#{$TANKDIR}/emags/#{hs2}/index/#{jpg}"
+  file = $MAGDIR + "#{hs2}/index/#{jpg}"
   body = ""
   File.open(file) do |fp|
     body = fp.read
@@ -300,27 +423,32 @@ def index(jpg)
 EOS
 end
 
-def change_tag(hs, tag)
+def change_tag(hs, id, tag)
   cd = hs[0..1]
-  magdir = "#{$TANKDIR}/emags"
-  idxfile = "#{magdir}/#{cd}/index/emags-#{hs}-index.jpg"
-  system "tag -r #{FL_FIL},#{FL_SKE},#{FL_NEV} #{idxfile}"
+  target = if id == '0000' then
+             $MAGDIR + "#{cd}/index/emags-#{hs}-index.jpg"
+           else
+             $MAGDIR + "#{cd}/emags-#{hs}/emags-#{hs}-#{id}.jpg"
+           end
+  system "tag -r #{FL_FIL},#{FL_SKE},#{FL_NEV} #{target}"
   case tag
   when FL_FIL, FL_SKE, FL_NEV then
-    system "tag -a #{tag} #{idxfile}"
+    system "tag -a #{tag} #{target}"
   when FL_DEL then
-    trash = "#{$TANKDIR}/#{TRASHDIR}"
-    FileUtils.move(idxfile, trash) if File.exist?(idxfile)
+    trash = $TANKDIR + TRASHDIR
+    FileUtils.move(target, trash) if File.exist?(target)
+    small = $MAGDIR + "#{cd}/emags-#{hs}/s/emags-#{hs}-#{id}.jpg"
+    FileUtils.remove(small) if File.exist?(small)
   end
-  listfile = "#{magdir}/#{hs[0]}.list"
+  listfile = $MAGDIR + "#{hs[0]}.list"
   FileUtils.remove(listfile) if File.exist?(listfile)
 end
 
 def set_index(hs, jpg)
   cd = hs[0..1]
-  idxfile = "#{$TANKDIR}/emags/#{cd}/index/emags-#{hs}-index.jpg"
+  idxfile = $MAGDIR + "#{cd}/index/emags-#{hs}-index.jpg"
   tag = `tag -l #{idxfile}`.split(/\s/)[1]
-  srcfile = "#{$TANKDIR}/emags/#{cd}/emags-#{hs}/#{jpg}"
+  srcfile = $MAGDIR + "#{cd}/emags-#{hs}/#{jpg}"
   FileUtils.copy(srcfile, idxfile)
   system "tag -a #{tag} #{idxfile}"
 end

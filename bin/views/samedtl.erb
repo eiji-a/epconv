@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SAME DETAIL</title>
+  <style type="text/css">
+    <!--
+    body {
+    font-family: Avenir;
+    font-size: 10pt;
+    }
+    -->
+  </style>
+</head>
+<body>
+
+  <table border="0">
+    <tr>
+      <td>
+        <a href="/mag/n/0/all/<%= @hash[0] %>/0" target="s0">
+          <img src="/index/emags-<%= @hash[0] %>-index.jpg" width="200px">
+        </a>
+      </td>
+      <td>
+      </td>
+      <td>
+        <a href="/mag/n/0/all/<%= @hash[1] %>/0" target="s0">
+          <img src="/index/emags-<%= @hash[1] %>-index.jpg" width="200px">
+        </a>
+      </td>
+    </tr>
+    <% @files.each do |f| %>
+    <tr>
+      <% f.each_index do |i| %>
+      <td>
+        <img src="/image/emags-<%= @hash[i] %>-<%= f[i][0] %>.jpg/s" width="200px">
+      </td>
+      <td>
+        ID: <%= f[i][0] %><br />
+        SIZE: <%= f[i][1] %><br />
+        RESO: <%= f[i][2] %> x <%= f[i][3] %><br />
+      </td>
+      <% end %>
+    </tr>
+    <% end %>
+  </table>
+
+</body>
+</html>

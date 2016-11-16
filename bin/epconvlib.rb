@@ -19,12 +19,18 @@ NRETRY = 20
 INTERVAL = 5  # 5 sec
 COVERSIZE = 100 * 1024 # 100kB
 
+# file type
+FILE_PIC   = 'eaepc'
+FILE_MAG   = 'emags'
+FILE_PAGE  = 'magpage'
+FILE_INDEX = 'magindex'
+
 # directories
-PICDIR = 'eaepc'
-MAGDIR = 'emags'
-TRASHDIR = 'trash'
-TMPDIR = '/tmp'
-DELDIR = 'deleted'
+PICDIR = FILE_PIC + '/'
+MAGDIR = FILE_MAG + '/'
+TRASHDIR = 'trash/'
+TMPDIR = '/tmp/'
+DELDIR = 'deleted/'
 
 # status
 ST_DELETE = 'deleted'
@@ -43,25 +49,29 @@ TYPE = {FL_FIL => 'FIL', FL_SKE => 'SKE', FL_NEV => 'NEV', FL_DEL => 'DEL'}
 ST_NAME = 'n'
 ST_TIME = 't'
 
-# file type
-FILE_PIC   = 'pic'
-FILE_MAG   = 'mag'
-FILE_PAGE  = 'magpage'
-FILE_INDEX = 'magindex'
-
 # METHODS
 # -------------------------
 
+def init_base(argv)
+  return false if ARGV.size >= 1 || is_tankdir(argv[0])
+  $TANKDIR = argv[0] + '/'
+  db_open($TANKDIR)
+  true
+end
+
 def is_tankdir(tankdir)
   return false if Dir.exist?(tankdir) == false
-  return false if Dir.exist?(tankdir + "/" + PICDIR) == false
-  return false if Dir.exist?(tankdir + "/" + MAGDIR) == false
-  return false if File.exist?(tankdir + "/" + DBFILE) == false
+  tdir = tankdir + '/'
+  return false if Dir.exist?(tdir  + PICDIR) == false
+  return false if Dir.exist?(tdir  + MAGDIR) == false
+  return false if Dir.exist?(tdir  + TRASHDIR) == false
+  return false if Dir.exist?(tdir  + DELDIR) == false
+  return false if File.exist?(tdir + DBFILE) == false
   return true
 end
 
 def db_open(tankdir)
-  @DB = SQLite3::Database.new(tankdir + "/" + DBFILE)
+  @DB = SQLite3::Database.new(tankdir + DBFILE)
 end
 
 def db_close
@@ -94,7 +104,7 @@ end
 
 def get_dir(hs, tankdir, picdir)
   idx = hs[0, 2]
-  dirname = "#{tankdir}/#{picdir}/#{idx}"
+  dirname = tankdir + picdir + idx + '/'
   Dir.mkdir(dirname) if Dir.exist?(dirname) == false
   dirname
 end
@@ -107,8 +117,8 @@ end
 
 def get_path(f)
   kind, type, cd, hash, id = analyze_file(f)
-  cdpath = "#{$TANKDIR}/#{type}/#{cd}/"
-  path = case kind
+  cdpath = $TANKDIR + "#{type}/#{cd}/"
+  path = case type
          when FILE_INDEX
            cdpath + 'index/'
          when FILE_MAG
@@ -120,36 +130,34 @@ def get_path(f)
          else
            ""
          end
-  cdpath, path, path + f
+  return cdpath, path, path + f
 end
 
 def analyze_file(f)
-  kind = MAGDIR
+  kind = FILE_MAG
   type = cd = hash = id = nil
   case f
-  when /^eaepc-.+\d.jpg$/ =~ f
-    /^eaepc-(..)(.+)\.jpg$/ =~ f
-    kind = PICDIR
+  when /^eaepc-(..)(.+)\.jpg$/
+    kind = FILE_PIC
     type = FILE_PIC
     cd   = $1
     hash = $1 + $2
-  when /^emags-.+-index\.jpg$/ =~ f
-    /^emags-(..)(.+)-index\.jpg$/ =~ f
+  when /^emags-(..)(.*?)-index\.jpg$/
     type = FILE_INDEX
     cd   = $1
     hash = $1 + $2
-  when /^emags-.+-\d+\.jpg$/ =~ f
-    /^emags-(..)(.+)-(\d+)\.jpg$/ =~ f
+  when /^emags-(..)(.*?)-(\d+)\.jpg$/
     type = FILE_PAGE
     cd   = $1
     hash = $1 + $2
     id   = $3
-  else
-    /^emags-(..)(.+)$/ =~ f
+  when /^emags-(..)(.+)$/
     type = FILE_MAG
     cd   = $1
     hash = $1 + $2
+  else
+    kind = 'non'
   end
-  kind, type, cd, hash, id
+  return kind, type, cd, hash, id
 end
 

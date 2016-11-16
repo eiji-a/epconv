@@ -9,6 +9,13 @@
 
 require_relative 'epconvlib'
 
+USAGE = <<-EOS
+usage: exist.rb <tank_dir> <image>
+  <tank_dir> : directory of image tank
+  <image>    : image file (.jpg)
+  <tank_dir> : directory of image tank
+EOS
+
 def main
   init
 
@@ -17,16 +24,13 @@ end
 
 def init
   if ARGV.size != 2 || is_tankdir(ARGV[0]) == false
-    STDERR.puts "usage: exist.rb <tank_dir> <image>"
-    STDERR.puts "   <tank_dir> : directory of image tank"
-    STDERR.puts "   <image>    : image file (.jpg)"
-    STDERR.puts "   <tank_dir> : directory of image tank"
+    STDERR.puts USAGE
     exit 1
   end
 
-  $TANKDIR = ARGV[0]
-  $TARGET = ARGV[1]
+  $TANKDIR = ARGV[0] + '/'
   db_open($TANKDIR)
+  $TARGET = ARGV[1]
 end
 
 def find_in_db(img)

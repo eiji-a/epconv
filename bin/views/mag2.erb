@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MAG: <%= @hash %></title>
+</head>
+<body>
+  <a href="/top/<%= @pg %>/<%= @filter %>/">TOP</a><br/>
+
+  <table>
+    <tr>
+    <td>
+    <img src="/index/<%= File.basename(@idxfile) %>" width="200px">
+    </td>
+    <td valign="top">
+    TAG:
+      <% TYPE.each_key do |k| %>
+      <%   if k == @filter %>
+        <%= TYPE[k] %>
+      <%   else %>
+      <a href="/change/<%= @pg %>/<%= @filter %>/<%= @hash %>/<%= k %>">
+        <%= TYPE[k] %>
+      </a>
+      <%   end %>
+      <% end %>
+     <br/>
+    </td>
+    </tr>
+  </table>
+
+  <table border="0">
+  <% lcnt = 0 %>
+  <% @list.each do |d| %>
+    <% if lcnt % LINEIMG == 0 %>
+    <tr>
+    <% end %>
+    <% bn = File.basename(d[0]) %>
+    <% /emags-.+-(\d+).jpg/ =~ bn %>
+    <% id = $1 %>
+    <td valign="top">
+      <%= id %>
+      <a href="/setidx/<%= bn %>">IDX</a> /
+      <a href="/delimage/<%= bn %>">DEL</a>
+      <br />
+      <a href="/image/<%= bn %>/" target="_view/">
+        <img src="/image/<%= bn %>/s">
+      </a>
+    </td>
+    <% if lcnt % LINEIMG == LINEIMG - 1 %>
+    </tr>
+    <% end %>
+    <% lcnt += 1 %>
+  </table>
+  <a href="/top/#{hs[0, 2]}/">TOP</a><br/>
+
+</body>
+</html>

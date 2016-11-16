@@ -26,7 +26,8 @@
     <a href="/page/<%= @image %>/<%= @npage %>/<%= @size %>"><%= @npage %></a>
     <% end %>
     <br />
-  SCALE (<%= @px %> X <%= @py %>):
+  SIZE : <%= @info[0] %> bytes<br />
+  SCALE (<%= @info[1] %> X <%= @info[2] %>):
     <% @slist.keys.each do |s| %>
     <%   if @size == s %>
            <%= @size %>
