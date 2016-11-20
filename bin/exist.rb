@@ -40,7 +40,7 @@ def find_in_db(img)
   end
   cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! '#{img}' PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
   fp = `#{cmd}`
-  sql = "SELECT id, filename FROM images where fingerprint = ?"
+  sql = "SELECT id, filename FROM images WHERE fingerprint = ?"
   db_execute(sql, fp.unpack("H*")).each do |r|
     puts "#{r[0]}:(#{r[1]})"
   end

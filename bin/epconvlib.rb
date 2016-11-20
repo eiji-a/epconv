@@ -25,6 +25,10 @@ FILE_MAG   = 'emags'
 FILE_PAGE  = 'magpage'
 FILE_INDEX = 'magindex'
 
+# tag type
+TAG_PIC    = 'pic'
+TAG_MAG    = 'mag'
+
 # directories
 PICDIR = FILE_PIC + '/'
 MAGDIR = FILE_MAG + '/'
@@ -33,9 +37,16 @@ TMPDIR = '/tmp/'
 DELDIR = 'deleted/'
 
 # status
+ST_ALL    = 'all'
+ST_FILE   = 'filed'
+ST_SKETCH = 'sketch'
+ST_SUSP   = 'suspended'
+ST_DEPEN  = 'depended'
 ST_DELETE = 'deleted'
-ST_DEDUP  = 'dedup'
+ST_DEDUP  = 'duplicated'
 ST_EXCEPT = 'excepted'
+STS = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_DEPEN => 'DEP', ST_DELETE => 'DEL', ST_DEDUP => 'DUP', ST_EXCEPT => 'EXT', ST_SUSP => 'SUS'}
+STBTN = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_EXCEPT => 'EXT'}
 
 # filters
 FL_ALL = 'all'
@@ -53,9 +64,10 @@ ST_TIME = 't'
 # -------------------------
 
 def init_base(argv)
-  return false if ARGV.size >= 1 || is_tankdir(argv[0])
+  return false if ARGV.size < 1 || is_tankdir(argv[0]) == false
   $TANKDIR = argv[0] + '/'
   db_open($TANKDIR)
+  puts "#{$TANKDIR}, #{@DB}"
   true
 end
 

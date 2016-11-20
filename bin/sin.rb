@@ -27,9 +27,9 @@ def main
     top st, pg, filter
   end
   
-  get '/mag/:st/:pg/:filter/:hash/:fst?' do |st, pg, filter, hs, fst|
+  get '/mag/:st/:pg/:filter/:id/:fst?' do |st, pg, filter, id, fst|
     fst = '0' if fst == nil
-    mag st, pg, filter, hs, fst.to_i
+    mag st, pg, filter, id, fst.to_i
   end
 
   get '/page/:im/:pg/:size?' do |im, pg, sz|
@@ -47,12 +47,13 @@ def main
   
   # for manipulate
   
-  get '/change/:sort/:pg/:filter/:hs/:id/:tag' do |st, pg, filter, hs, id, tag|
-    change_tag(hs, id, tag)
-    if id == '0000'
+  get '/change/:sort/:pg/:filter/:type/:id/:stat' do |st, pg, filter, type, id, stat|
+    change_stat(type, id, stat)
+    case type
+    when 'maglist'
       redirect "/top/#{st}/#{pg}/#{filter}"
-    else
-      redirect "/mag/#{st}/#{pg}/#{filter}/#{hs}/0"
+    when 'magpage'
+      redirect "/mag/#{st}/#{pg}/#{filter}/#{id}/0"
     end
   end
 
@@ -79,51 +80,71 @@ def main
 end
 
 def init
-  $TANKDIR = ARGV[0] + '/'
+  exit 1 if init_base(ARGV) == false
   $MAGDIR = $TANKDIR + MAGDIR
+  $CACHE = Array.new
+  "0123456789abcdef".chars.each do |c1|
+    "0123456789abcdef".chars.each do |c2|
+      $CACHE << "#{c1}#{c2}"
+    end
+  end
 end
 
 def top(st, cd, filter)
-  #magdir = $TANKDIR + MAGDIR
+  db_open($TANKDIR)
   @pg = cd.to_i
   @st = st
   @filter = filter
-  tags = Hash.new
-  "0123456789abcdef".chars.each do |c|
-    tags.merge!(get_taglist(c, filter))
-  end
 
-  @displist = Array.new
-  keys = tags.keys
-  keys[(@pg - 1) * NIMGPAGE, NIMGPAGE].each do |k|
-    @displist << [k, tags[k]]
-  end
-  @listsize = keys.size
+  @tags = get_tag
+  mags = get_maglist(filter)
+  @listsize = mags.size
+  ps = (@pg - 1) * NIMGPAGE
+  pe = ps + NIMGPAGE - 1
+  @displist = mags[ps..pe]
+  db_close
+  
   erb :top
 end
 
-def get_taglist(dir, tag)
-  ldir = $MAGDIR + dir
+def get_maglist(st)
   list = ""
-  if File.exist?(ldir + '.list') == false
-    File.open("#{ldir}.list", 'w') do |fp|
-      l = `tag -l #{ldir}*/index/*.jpg`
-      fp.write(l)
-      list = l
-    end
-  else
-    File.open("#{ldir}.list", 'r') do |fp|
-      list = fp.read
+  $CACHE.each do |l|
+    if File.exist?($MAGDIR + "#{l}.list") == false
+      File.open($MAGDIR + "#{l}.list", 'w') do |fp|
+        sql = "SELECT filename, mags.status, mags.id FROM mags, images" +
+              " WHERE mags.cover_id = images.id" +
+              "   AND mags.magname LIKE 'emags-#{l}%'"
+        l = ""
+        db_execute(sql).each do |r|
+          l += r.join('|') + "\n"
+        end
+        fp.write(l)
+        list += l
+      end
+    else
+      File.open($MAGDIR + "#{l}.list", 'r') do |fp|
+        list += fp.read
+      end
     end
   end
 
-  tags = Hash.new
+  stats = Array.new
   list.lines.each do |l|
-    next if tag != FL_ALL && /#{tag}/ !~ l
-    a = l.split(/\s+/)
-    tags[a[0]] = a[1]
+    l2 = l.chomp.split(/\|/)
+    next if st != ST_ALL && l2[1] != st
+    stats << l2
   end
-  tags
+  stats
+end
+
+def get_tag
+  tags = Hash.new
+  sql = "SELECT tag, count(target_id) FROM tagged, tags" +
+        " WHERE tagged.target = ?" +
+        "   AND tagged.tag_id = tags.id" +
+        " GROUP BY tag"
+  db_execute(sql, TAG_MAG)
 end
 
 def put_filter_link(cd, filter, type)
@@ -134,19 +155,24 @@ def put_filter_link(cd, filter, type)
   end
 end
 
-def mag(st, pg, filter, hs, fst)
-  magdir = $MAGDIR + "#{hs[0..1]}"
-  @idxfile = "#{magdir}/index/emags-#{hs}-index.jpg"
-  @tag = `tag -l #{@idxfile}`.split(/\s/)[1]
+def mag(st, pg, filter, id, fst)
+  db_open($TANKDIR)
+  sql = "SELECT magname, mags.status, filename FROM mags, images" +
+        " WHERE mags.id = ? AND mags.cover_id = images.id"
+  mag = db_execute(sql, id)[0]
+  @id = id
+  @stat = mag[1]
+  @idxfile = mag[2]
   @st = st
   @pg = pg
   @filter = filter
-  @hash = hs
-  @list = Array.new
-  `tag -l #{magdir}/emags-#{hs}/*.jpg`.lines.each do |l|
-    @list << l.split(/\s/)
-  end
-  @sizes, @total = read_magsize(hs)
+  sql = "SELECT filename, status FROM images WHERE filename LIKE ?"
+  @list = db_execute(sql, mag[0] + '%')
+  #`tag -l #{magdir}/emags-#{hs}/*.jpg`.lines.each do |l|
+  #  @list << l.split(/\s/)
+  #end
+  @sizes, @total = read_magsize(mag[0][6..45])
+  db_close
   erb :mag
 end
 
@@ -224,7 +250,7 @@ def same()
         if (s1 == s2) and
            (h1.size == h2.size) and
            (h1.size == sp.size)
-          change_tag(hs2, '0000', FL_DEL)
+          change_stat(hs2, '0000', FL_DEL)
         else
           @sames << [[hs1, h1, s1, t1],
                      [hs2, h2, s2, t2],
@@ -423,24 +449,22 @@ def index(jpg)
 EOS
 end
 
-def change_tag(hs, id, tag)
-  cd = hs[0..1]
-  target = if id == '0000' then
-             $MAGDIR + "#{cd}/index/emags-#{hs}-index.jpg"
-           else
-             $MAGDIR + "#{cd}/emags-#{hs}/emags-#{hs}-#{id}.jpg"
-           end
-  system "tag -r #{FL_FIL},#{FL_SKE},#{FL_NEV} #{target}"
-  case tag
-  when FL_FIL, FL_SKE, FL_NEV then
-    system "tag -a #{tag} #{target}"
-  when FL_DEL then
-    trash = $TANKDIR + TRASHDIR
-    FileUtils.move(target, trash) if File.exist?(target)
-    small = $MAGDIR + "#{cd}/emags-#{hs}/s/emags-#{hs}-#{id}.jpg"
-    FileUtils.remove(small) if File.exist?(small)
+def change_stat(type, id, stat)
+  db_open($TANKDIR)
+  case type
+  when 'maglist'
+    sql1 = "UPDATE mags SET status = ? WHERE id = ?"
+    sql2 = "SELECT magname FROM mags WHERE id = ?"
+  when 'magpage'
+    sql1 = "UPDATE images SET status = ? WHERE id = ?"
+    sql2 = "SELECT magname FROM images WHERE id = ?"
   end
-  listfile = $MAGDIR + "#{hs[0]}.list"
+  db_execute(sql1, stat, id)
+  fn = db_execute(sql2, id)[0][0]
+  db_close
+
+  /^emags-(..)/ =~ fn
+  listfile = $MAGDIR + "#{$1}.list"
   FileUtils.remove(listfile) if File.exist?(listfile)
 end
 

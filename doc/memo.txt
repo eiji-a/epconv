@@ -19,14 +19,31 @@
 
   create table tagged (
     tag_id integer,
-    image_id integer
+    target_id integer,
+    target varchar(32)
   );
 
   create index tagindex on tagged (
     tag_id,
-    image_id
+    target_id
   );
 
+  create index imgindex on images (
+    filename
+  );
+
+  create index imgindex2 on images (
+    id
+  );
+
+  create table mags (
+    id integer primary key,
+    magname varchar(256),
+    cover_id integer,
+    createdate varchar(14),
+    status text
+  );
+  
 -- commands
 
 - register images

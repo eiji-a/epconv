@@ -1,48 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>MAG: <%= @hash %></title>
-  <style type="text/css">
-    <!--
-    body {
-    font-family: Avenir;
-    font-size: 10pt;
-    }
-    -->
-  </style>
+  <!-- Required meta tags always come first -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+  <title>BEAUTY PICS: Magazine</title>
 </head>
-<body>
-  <form action="search" method="POST">
-    <a href="/top/<%= @st %>/<%= @pg %>/<%= @filter %>">TOP</a>
-    <input type="text" name="hash" size="40">
-    <input type="submit" value="SEARCH">
-  </form>
+<body style="padding-top:70px;">
 
-  <table>
-    <tr>
-    <td>
-    <img src="/index/<%= File.basename(@idxfile) %>" width="200px">
-    </td>
-    <td valign="top">
-      HASH: <%= @hash %> <br />
-      PAGE: <%= @list.size %> <br />
-      TAG:
-      <% TYPE.each_key do |k| %>
-      <%   if k == @tag %>
-        <%= TYPE[k] %>
-      <%   else %>
-      <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @hash %>/0000/<%= k %>">
-        <%= TYPE[k] %>
-      </a>
-      <%   end %>
-      <% end %>
-      <br/>
-    </td>
-    </tr>
-  </table>
+  <nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button class="navbar-toggle" data-toggle="collapse" data-target="#mainNav">
+          <span class="sr-only">navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a href="/top/n/1/all" class="navbar-brand">BEAUTY PICS: Magazine</a>
+      </div>
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="nav navbar-nav navbar-right">
+          <li class="nav-item">
+            <a href="/top/<%= @st %>/<%= @pg %>/<%= @filter %>">TOP</a>
+          </li>
+        <% if @filter == 'all' %>
+        <li class="nav-item active">
+        <% else %>
+        <li class="nav-item">
+        <% end %>
+          <a href="/top/<%= @st %>/<%= @pg %>/all" class="nav-link">all</a>
+        </li>
+        <% ['filed', 'sketch', 'excepted', 'suspended'].each do |k| %>
+        <% if @filter == k %>
+        <li class="nav-item active">
+          <a href="/top/<%= @st %>/<%= @pg %>/<%= k %>" class="nav-link">
+            <%= k %>
+          </a>
+        </li>
+        <% else  %>
+        <li class="nav-item">
+          <a href="/top/<%= @st %>/1/<%= k %>" class="nav-link"><%= k %></a>
+        </li>
+        <% end %>
+        <% end %>
+      </ul>
+        <form class="navbar-form navbar-right" action="search" method="POST">
+          <div class="form-group">
+            <input type="text" name="hash" size="40" class="form-control"
+                   placeholder="hash">
+          </div>
+          <input type="submit" value="SEARCH">
+        </form>
+      </div>
+    </div>
+  </nav>
+  
+  
 
-  <table border="0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-xs-3">
+        PAGE: <%= @list.size %> <br />
+        <% TYPE.each_key do |k| %>
+        <%   if k == @tag %>
+        <%= TYPE[k] %>
+        <%   else %>
+        <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @id %>/0000/<%= k %>">
+          <%= TYPE[k] %>
+        </a>
+        <%   end %>
+        <% end %>
+        <img src="/image/<%= @idxfile %>/" width="300px">
+      </div>
+
+      <div class="col-xs-9">
+        <div class="table-responsive">
+          <table class="table">
+
   <% lcnt = 0 %>
   <% @list.each do |d| %>
     <% if lcnt % LINEIMG == 0 %>
@@ -59,7 +99,7 @@
       <%   if k == d[1] %>
       <%=    TYPE[k] %>
       <%   else %>
-      <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @hash %>/<%= id %>/<%= k %>">
+      <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @id %>/<%= id %>/<%= k %>">
         <%= TYPE[k] %>
       </a>
       <%   end %>
@@ -67,8 +107,36 @@
       <br />
       <%= @sizes[bn] %>
       <br />
+
+                <div class="btn-group btn-group-xs" role="group" aria-label="change">
+                  <% STBTN.each_key do |k| %>
+                    <% if k == ST_SKETCH %>
+                    <%   icon="pencil" %>
+                    <% elsif k == ST_FILE %>
+                    <%   icon="folder-open" %>
+                    <% elsif k == ST_EXCEPT %>
+                    <%   icon="remove" %>
+                    <% end %>
+                    <% if k != d[1] %>
+                    <%   btnst="" %>
+                    <%   lnk="/change/#{@st}/#{@pg}/#{@filter}/maglist/#{d[2]}/#{k}" %>
+                    <% else %>
+                    <%   btnst=" disabled" %>
+                    <%   lnk="" %>
+                    <% end %>
+                  <button type="button" class="btn btn-default<%= btnst %>">
+                    <a href="<%= lnk %>">
+                      <span class="glyphicon glyphicon-<%= icon %>"
+                            aria-hidden="true">
+                      </span>
+                    </a>
+                  </button>
+                <% end %>
+                </div>
+
+      
       <a href="/page/<%= im %>/<%= id %>/100" target="_view/">
-        <img src="/image/<%= bn %>/s">
+        <img src="/image/<%= bn %>/s" width="150px">
       </a>
     </td>
     <% if lcnt % LINEIMG == LINEIMG - 1 %>
@@ -76,8 +144,16 @@
     <% end %>
     <% lcnt += 1 %>
   <% end %>
-  </table>
-  <a href="/top/<%= @st %>/<%= @hash[0, 2] %>/">TOP</a><br/>
 
+          </table>
+          <a href="#">TOP</a><br/>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- jQuery first, then Tether, then Bootstrap JS. -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="/js/bootstrap.min.js"></script>
 </body>
 </html>
