@@ -45,8 +45,10 @@ ST_DEPEN  = 'depended'
 ST_DELETE = 'deleted'
 ST_DEDUP  = 'duplicated'
 ST_EXCEPT = 'excepted'
+
 STS = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_DEPEN => 'DEP', ST_DELETE => 'DEL', ST_DEDUP => 'DUP', ST_EXCEPT => 'EXT', ST_SUSP => 'SUS'}
 STBTN = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_EXCEPT => 'EXT'}
+STBTN2 = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_DEPEN => 'DEPE', ST_EXCEPT => 'EXT'}
 
 # filters
 FL_ALL = 'all'

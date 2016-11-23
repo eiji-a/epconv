@@ -19,6 +19,10 @@ def main
   set :bind, '192.168.11.111'
 
   # for page
+
+  get '/' do
+    redirect "/top/n/1/all"
+  end
   
   get '/top/:sort?/:pg?/:filter?' do |st, pg, filter|
     st = ST_NAME if st == '' || st == nil
@@ -48,21 +52,20 @@ def main
   # for manipulate
   
   get '/change/:sort/:pg/:filter/:type/:id/:stat' do |st, pg, filter, type, id, stat|
-    change_stat(type, id, stat)
+    id2 = change_stat(type, id, stat)
     case type
     when 'maglist'
       redirect "/top/#{st}/#{pg}/#{filter}"
     when 'magpage'
-      redirect "/mag/#{st}/#{pg}/#{filter}/#{id}/0"
+      redirect "/mag/#{st}/#{pg}/#{filter}/#{id2}/0"
+    when 'magimage'
+      redirect "/mag/#{st}/#{pg}/#{filter}/#{id2}/0"
     end
   end
 
-  get '/setidx/:pg/:filter/:jpg' do |pg, filter, jpg|
-    /emags-(.+)-(\d\d\d\d).jpg/ =~ jpg
-    hash = $1
-    fst = ($2.to_i / 50) * 50
-    set_index(hash, jpg)
-    redirect "/mag/n/#{pg}/#{filter}/#{hash}/#{fst}"
+  get '/setidx/:st/:pg/:filter/:id/:imid' do |st, pg, filter, id, imid|
+    set_index(id, imid)
+    redirect "/mag/#{st}/#{pg}/#{filter}/#{id}/0"
   end
 
   # for parts
@@ -166,11 +169,9 @@ def mag(st, pg, filter, id, fst)
   @st = st
   @pg = pg
   @filter = filter
-  sql = "SELECT filename, status FROM images WHERE filename LIKE ?"
-  @list = db_execute(sql, mag[0] + '%')
-  #`tag -l #{magdir}/emags-#{hs}/*.jpg`.lines.each do |l|
-  #  @list << l.split(/\s/)
-  #end
+  sql = "SELECT filename, status, images.id FROM images, magimage" +
+        " WHERE magimage.mag_id = ? AND magimage.image_id = images.id"
+  @list = db_execute(sql, id)
   @sizes, @total = read_magsize(mag[0][6..45])
   db_close
   erb :mag
@@ -250,7 +251,7 @@ def same()
         if (s1 == s2) and
            (h1.size == h2.size) and
            (h1.size == sp.size)
-          change_stat(hs2, '0000', FL_DEL)
+          change_stat(hs2, '0', FL_DEL)
         else
           @sames << [[hs1, h1, s1, t1],
                      [hs2, h2, s2, t2],
@@ -450,31 +451,42 @@ EOS
 end
 
 def change_stat(type, id, stat)
+  id2 = id
   db_open($TANKDIR)
   case type
   when 'maglist'
     sql1 = "UPDATE mags SET status = ? WHERE id = ?"
-    sql2 = "SELECT magname FROM mags WHERE id = ?"
+    sql2 = "SELECT magname, id FROM mags WHERE id = ?"
   when 'magpage'
+    sql1 = "UPDATE mags SET status = ? WHERE id = ?"
+    sql2 = "SELECT magname, id FROM mags WHERE id = ?"
+  when 'magimage'
     sql1 = "UPDATE images SET status = ? WHERE id = ?"
-    sql2 = "SELECT magname FROM images WHERE id = ?"
+    sql2 = "SELECT filename, magimage.mag_id  FROM images, magimage" +
+           " WHERE images.id = ? AND images.id = magimage.image_id"
   end
   db_execute(sql1, stat, id)
-  fn = db_execute(sql2, id)[0][0]
+  fn = db_execute(sql2, id)[0]
   db_close
 
+  del_listfile(fn[0])
+  fn[1]
+end
+
+def del_listfile(fn)
   /^emags-(..)/ =~ fn
   listfile = $MAGDIR + "#{$1}.list"
   FileUtils.remove(listfile) if File.exist?(listfile)
 end
 
-def set_index(hs, jpg)
-  cd = hs[0..1]
-  idxfile = $MAGDIR + "#{cd}/index/emags-#{hs}-index.jpg"
-  tag = `tag -l #{idxfile}`.split(/\s/)[1]
-  srcfile = $MAGDIR + "#{cd}/emags-#{hs}/#{jpg}"
-  FileUtils.copy(srcfile, idxfile)
-  system "tag -a #{tag} #{idxfile}"
+def set_index(id, imid)
+  db_open($TANKDIR)
+  sql = "UPDATE mags SET cover_id = ? WHERE id = ?"
+  db_execute(sql, imid, id)
+  sql = "SELECT magname FROM mags WHERE id = ?"
+  mn = db_execute(sql, id)[0][0]
+  db_close
+  del_listfile(mn)
 end
 
 main

@@ -27,6 +27,7 @@ def main
   Dir.glob("*/index/*.jpg").each do |i|
     migrate(i)
   end
+  db_close
 end
 
 def init
@@ -40,12 +41,25 @@ end
 
 def migrate(fn)
   stat = STATUS[`tag -l #{fn}`.split[1]]
-  cover = select_cover(fn)
-  create_mag(cover, stat)
+  images, cover, bn = get_magimages(fn)
+  create_mag(images, cover, bn, stat)
 end
 
-def select_cover(fn)
+def get_magimages(fn)
   sz = FileTest.size(fn)
+  fn =~ /^(..)\/index\/(.+)-index.jpg$/
+  dir = $1 + '/' + $2
+  imgs = Hash.new
+  cv = ""
+  Dir.foreach(dir) do |f|
+    next if f !~ /\.jpg$/
+    imgs[f] = FileTest.size(dir + '/' + f)
+    cv = f if imgs[f] == sz
+  end
+  return imgs, cv, File.basename(dir)
+end
+  
+def select_cover(fn, images)
   fn =~ /^(..)\/index\/(.+)-index.jpg$/
   dir = $1 + '/' + $2
   cv = ""
@@ -58,19 +72,34 @@ def select_cover(fn)
   cv
 end
 
-def create_mag(cv, st)
-  sql = "SELECT id FROM images WHERE filename LIKE ?"
-  cv_id = 0
-  db_execute(sql, cv + '%').each do |r|
+def create_mag(imgs, cv, bn, st)
+  sql = "SELECT id FROM images WHERE filename = ?"
+  cv_id = 1
+  db_execute(sql, cv).each do |r|
     cv_id = r[0]
   end
+  STDERR.puts "Can't select cover image: #{cv}" if cv_id == 1
+  
   cdate = Time.now.strftime('%Y%m%d%H%M%S')
   sql = "INSERT INTO mags (magname, cover_id, createdate, status) VALUES (?, ?, ?, ?)"
-  /^(.+)-\d+\.jpg$/ =~ cv
-  mn = $1
-  #puts "#{sql}, #{$1} id = #{cv_id}, #{cdate}"
+  mn = bn
   db_execute(sql, mn, cv_id, cdate, st)
+
+  sql = "SELECT id FROM mags WHERE magname = ?"
+  mid = db_execute(sql, mn)[0][0]
+
+  fn = Array.new
+  imgs.each_key do |k|
+    fn << "'#{k}'"
+  end
+  sql = "SELECT id FROM images WHERE filename IN (#{fn.join(',')})"
+  ids = db_execute(sql).flatten
+  ids.each do |i|
+    sql = "INSERT INTO magimage VALUES (?, ?)"
+    db_execute(sql, mid, i)
+  end
   puts "Created: #{mn}"
 end
 
 main
+

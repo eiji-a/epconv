@@ -23,39 +23,23 @@
           <span class="icon-bar"></span>
         </button>
         <a href="/top/n/1/all" class="navbar-brand">BEAUTY PICS: Magazine</a>
-      </div>
-      <div class="collapse navbar-collapse" id="mainNav">
         <ul class="nav navbar-nav navbar-right">
           <li class="nav-item">
-            <a href="/top/<%= @st %>/<%= @pg %>/<%= @filter %>">TOP</a>
+            <a href="/top/<%= @st %>/<%= @pg %>/<%= @filter %>">
+              <span class="glyphicon glyphicon-arrow-up"
+                    aria-hidden="true">
+              </span>TOP
+            </a>
           </li>
-        <% if @filter == 'all' %>
-        <li class="nav-item active">
-        <% else %>
-        <li class="nav-item">
-        <% end %>
-          <a href="/top/<%= @st %>/<%= @pg %>/all" class="nav-link">all</a>
-        </li>
-        <% ['filed', 'sketch', 'excepted', 'suspended'].each do |k| %>
-        <% if @filter == k %>
-        <li class="nav-item active">
-          <a href="/top/<%= @st %>/<%= @pg %>/<%= k %>" class="nav-link">
-            <%= k %>
-          </a>
-        </li>
-        <% else  %>
-        <li class="nav-item">
-          <a href="/top/<%= @st %>/1/<%= k %>" class="nav-link"><%= k %></a>
-        </li>
-        <% end %>
-        <% end %>
-      </ul>
+        </ul>
+      </div>
+      <div class="collapse navbar-collapse" id="mainNav">
         <form class="navbar-form navbar-right" action="search" method="POST">
           <div class="form-group">
             <input type="text" name="hash" size="40" class="form-control"
                    placeholder="hash">
           </div>
-          <input type="submit" value="SEARCH">
+          <input type="submit" value="SEARCH" class="btn btn-primary">
         </form>
       </div>
     </div>
@@ -66,72 +50,77 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-xs-3">
-        PAGE: <%= @list.size %> <br />
-        <% TYPE.each_key do |k| %>
-        <%   if k == @tag %>
-        <%= TYPE[k] %>
-        <%   else %>
-        <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @id %>/0000/<%= k %>">
-          <%= TYPE[k] %>
-        </a>
-        <%   end %>
-        <% end %>
+        <span class="badge"><%= @list.size %></span>
+        <div class="btn-group">
+          <% STBTN.each_key do |k| %>
+          <% if k == ST_SKETCH %>
+          <%  icon="pencil" %>
+          <% elsif k == ST_FILE %>
+          <%  icon="folder-open" %>
+          <% elsif k == ST_EXCEPT %>
+          <%  icon="trash" %>
+          <% end %>
+          <% if k == @stat %>
+          <%   btnst="default disabled" %>
+          <%   lnk="#" %>
+          <% else %>
+          <%   btnst="primary" %>
+          <%   lnk="/change/#{@st}/#{@pg}/#{@filter}/magpage/#{@id}/#{k}" %>
+          <% end %>
+          <a class="btn btn-<%= btnst %>" href="<%= lnk %>">
+              <span class="glyphicon glyphicon-<%= icon %>"
+                    aria-hidden="true">
+              </span>
+          </a>
+          <% end %>
+        </div>
         <img src="/image/<%= @idxfile %>/" width="300px">
       </div>
 
       <div class="col-xs-9">
         <div class="table-responsive">
           <table class="table">
-
-  <% lcnt = 0 %>
-  <% @list.each do |d| %>
-    <% if lcnt % LINEIMG == 0 %>
-    <tr>
-    <% end %>
-    <% bn = File.basename(d[0]) %>
-    <% /emags-(.+)-(\d+).jpg/ =~ bn %>
-    <% im = $1 %>
-    <% id = $2 %>
-    <td valign="top">
-      <%= id %>
-      <a href="/setidx/<%= @pg %>/<%= @filter %>/<%= bn %>">IDX</a> /
-      <% TYPE.each_key do |k| %>
-      <%   if k == d[1] %>
-      <%=    TYPE[k] %>
-      <%   else %>
-      <a href="/change/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @id %>/<%= id %>/<%= k %>">
-        <%= TYPE[k] %>
-      </a>
-      <%   end %>
-      <% end %>
-      <br />
-      <%= @sizes[bn] %>
-      <br />
-
+            <% lcnt = 0 %>
+            <% @list.each do |d| %>
+            <% if lcnt % LINEIMG == 0 %>
+            <tr>
+            <% end %>
+              <% bn = File.basename(d[0]) %>
+              <% /emags-(.+)-(\d+).jpg/ =~ bn %>
+              <% im = $1 %>
+              <% id = $2 %>
+              <td valign="top">
+                <%= id %>: <%= @sizes[bn] %>
+                <a href="/setidx/<%= @st %>/<%= @pg %>/<%= @filter %>/<%= @id %>/<%= d[2] %>">
+                  <span class="glyphicon glyphicon-star-empty"
+                        aria-hidden="true">
+                  </span>
+                </a>
+                <br />
                 <div class="btn-group btn-group-xs" role="group" aria-label="change">
-                  <% STBTN.each_key do |k| %>
-                    <% if k == ST_SKETCH %>
-                    <%   icon="pencil" %>
-                    <% elsif k == ST_FILE %>
-                    <%   icon="folder-open" %>
-                    <% elsif k == ST_EXCEPT %>
-                    <%   icon="remove" %>
-                    <% end %>
-                    <% if k != d[1] %>
-                    <%   btnst="" %>
-                    <%   lnk="/change/#{@st}/#{@pg}/#{@filter}/maglist/#{d[2]}/#{k}" %>
-                    <% else %>
-                    <%   btnst=" disabled" %>
-                    <%   lnk="" %>
-                    <% end %>
-                  <button type="button" class="btn btn-default<%= btnst %>">
-                    <a href="<%= lnk %>">
-                      <span class="glyphicon glyphicon-<%= icon %>"
-                            aria-hidden="true">
-                      </span>
-                    </a>
-                  </button>
-                <% end %>
+                <% STBTN2.each_key do |k| %>
+                  <% if k == ST_SKETCH %>
+                  <%   icon="pencil" %>
+                  <% elsif k == ST_FILE %>
+                  <%   icon="folder-open" %>
+                  <% elsif k == ST_DEPEN %>
+                  <%  icon="link" %>
+                  <% elsif k == ST_EXCEPT %>
+                  <%   icon="trash" %>
+                  <% end %>
+                  <% if k != d[1] %>
+                  <%   btnst="primary" %>
+                  <%   lnk="/change/#{@st}/#{@pg}/#{@filter}/magimage/#{d[2]}/#{k}" %>
+                  <% else %>
+                  <%   btnst="default disabled" %>
+                  <%   lnk="#" %>
+                  <% end %>
+                  <a class="btn btn-<%= btnst %>" href="<%= lnk %>">
+                    <span class="glyphicon glyphicon-<%= icon %>"
+                          aria-hidden="true">
+                    </span>
+                  </a>
+                  <% end %>
                 </div>
 
       
