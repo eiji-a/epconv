@@ -80,8 +80,8 @@
       <div class="col-xs-9">
         <div class="table-responsive">
           <table class="table">
-            <% lcnt = 0 %>
-            <% @list.each do |d| %>
+          <% lcnt = 0 %>
+          <% @list.each do |d| %>
             <% if lcnt % LINEIMG == 0 %>
             <tr>
             <% end %>
@@ -97,7 +97,8 @@
                   </span>
                 </a>
                 <br />
-                <div class="btn-group btn-group-xs" role="group" aria-label="change">
+                <div class="btn-group btn-group-xs" role="group"
+                     aria-label="change">
                 <% STBTN2.each_key do |k| %>
                   <% if k == ST_SKETCH %>
                   <%   icon="pencil" %>
@@ -123,17 +124,16 @@
                   <% end %>
                 </div>
 
-      
-      <a href="/page/<%= im %>/<%= id %>/100" target="_view/">
-        <img src="/image/<%= bn %>/s" width="150px">
-      </a>
-    </td>
-    <% if lcnt % LINEIMG == LINEIMG - 1 %>
-    </tr>
-    <% end %>
-    <% lcnt += 1 %>
-  <% end %>
-
+                <br />
+                <a href="/page/<%= im %>/<%= id %>/100" target="_view/">
+                  <img src="/image/<%= bn %>/s" width="150px">
+                </a>
+              </td>
+            <% if lcnt % LINEIMG == LINEIMG - 1 %>
+            </tr>
+            <% end %>
+          <% lcnt += 1 %>
+          <% end %>
           </table>
           <a href="#">TOP</a><br/>
         </div>

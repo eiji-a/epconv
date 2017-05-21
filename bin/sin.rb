@@ -16,7 +16,7 @@ def main
   init
 
   set :server, %w[webrick]
-  set :bind, '192.168.11.111'
+  set :bind, $IPADDR
 
   # for page
 
@@ -47,6 +47,13 @@ def main
 
   get '/samedtl/:hash1/:hash2' do |hs1, hs2|
     samedtl hs1, hs2
+  end
+
+  get '/piclist/:sort?/:pg?/:filter?' do |st, pg, filter|
+    st = ST_NAME if st == '' || st == nil
+    pg = 1 if pg.to_i == nil
+    filter = 'all' if filter == nil
+    piclist st, pg, filter
   end
   
   # for manipulate
@@ -85,6 +92,7 @@ end
 def init
   exit 1 if init_base(ARGV) == false
   $MAGDIR = $TANKDIR + MAGDIR
+  $PICDIR = $TANKDIR + PICDIR
   $CACHE = Array.new
   "0123456789abcdef".chars.each do |c1|
     "0123456789abcdef".chars.each do |c2|
@@ -415,22 +423,93 @@ def put_change_link(hash, tag, type)
   end
 end
 
-def image(jpg, s)
-  /^emags-(.+)-\d\d\d\d\.jpg+$/ =~ jpg
-  hs2 = $1[0..1]
-  magd = $MAGDIR + "#{hs2}/emags-#{$1}"
-  f = magd + '/' + jpg
-  if s == true
-    smdir = magd + '/s'
-    FileUtils.mkdir(smdir) if File.exists?(smdir) == false
-    if File.exists?(smdir + '/' + jpg) == false
-      system "sips --resampleWidth 200 #{magd + '/' + jpg} --out #{smdir}"
+def piclist(st, pg, filter)
+  db_open($TANKDIR)
+  @pg = pg.to_i
+  @st = st
+  @filter = filter
+
+  @tags = get_tag
+  pics = get_piclist(filter)
+  @listsize = pics.size
+  ps = (@pg - 1) * NIMGPAGE
+  pe = ps + NIMGPAGE - 1
+  @displist = pics[ps..pe]
+  db_close
+  
+  erb :piclist
+end
+
+def get_piclist(st)
+  list = ""
+  $CACHE.each do |l|
+    listf = "#{$PICDIR}#{l}.list"
+    if File.exist?(listf) == false
+      puts "CACHE: #{l}"
+      sql = "SELECT filename, images.status, images.id" +
+            "  FROM mags, magimage, images" +
+            " WHERE mags.magname = 'pictures-#{l}'" +
+            "   AND mags.id = magimage.mag_id" +
+            "   AND magimage.image_id = images.id;"
+      cmd = "sqlite3 #{$TANKDIR}#{DBFILE} \"#{sql}\" > #{listf}"
+      system cmd
+      #puts "SQL:#{cmd}"
+  
+=begin
+      File.open($PICDIR + "#{l}.list", 'w') do |fp|
+        sql = "SELECT filename, images.status, images.id " +
+              "  FROM images, mags, magimage" +
+              " WHERE mags.magname = ? AND mags.id = magimage.mag_id" +
+              "   AND magimage.image_id = images.id"
+        ls = ""
+        db_execute(sql, VIRTUALMAG + l).each do |r|
+          ls += r.join('|') + "\n"
+        end
+        fp.write(ls)
+        list += ls
+      end
+=end
     end
-    f = smdir + '/' + jpg
+    File.open($PICDIR + "#{l}.list", 'r') do |fp|
+        list += fp.read
+    end
   end
+
+  stats = Array.new
+  list.lines.each do |l|
+    l2 = l.chomp.split(/\|/)
+    next if l2[1] == ST_DELETE
+    next if st != ST_ALL && l2[1] != st
+    stats << l2
+  end
+  stats
+end
+
+def image(jpg, s)
+  /^(.....)-(.+)\.jpg+$/ =~ jpg
+  tp = $1
+  hs = $2
+  hs2 = hs[0..1]
+  fn = if tp == 'emags' then
+    /^(.+)-(\d+)$/ =~ hs
+    magd = $MAGDIR + "#{hs2}/emags-#{$1}"
+    if s == true then
+      smdir = magd + '/s'
+      FileUtils.mkdir(smdir) if File.exists?(smdir) == false
+      if File.exists?(smdir + '/' + jpg) == false
+        system "sips --resampleWidth 200 #{magd + '/' + jpg} --out #{smdir}"
+      end
+      smdir + '/' + jpg
+    else
+      magd + '/' + jpg
+    end
+  else
+    $PICDIR + "#{hs2}/" + jpg
+  end
+
   body = ""
-  File.open(f) do |fp|
-    body = fp.read
+  File.open(fn) do |fp|
+      body = fp.read
   end
   return <<-EOS
 #{body}

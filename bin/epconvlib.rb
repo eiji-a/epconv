@@ -10,6 +10,7 @@ require 'sqlite3'
 
 DBFILE = 'tank.sqlite'
 EXT = '.jpg'
+PICMAG  = 'pictures-'
 FILETAG = 'filed'
 SKETTAG = 'forsketch'
 INITTAG = 'notevaluated'
@@ -17,7 +18,8 @@ EXCPTAG = 'excepting'
 FPSIZE = 8
 NRETRY = 20
 INTERVAL = 5  # 5 sec
-COVERSIZE = 100 * 1024 # 100kB
+COVERSIZE = 300 * 1024 # 100kB
+VIRTUALMAG = 'pictures-'
 
 # file type
 FILE_PIC   = 'eaepc'
@@ -66,8 +68,9 @@ ST_TIME = 't'
 # -------------------------
 
 def init_base(argv)
-  return false if ARGV.size < 1 || is_tankdir(argv[0]) == false
+  return false if ARGV.size < 2 || is_tankdir(argv[0]) == false
   $TANKDIR = argv[0] + '/'
+  $IPADDR  = argv[1]
   db_open($TANKDIR)
   puts "#{$TANKDIR}, #{@DB}"
   true
