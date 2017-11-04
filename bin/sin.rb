@@ -19,6 +19,10 @@ def main
   set :bind, '192.168.11.111'
 
   # for page
+
+  get '' do
+    redirect "/top/n/1/all"
+  end
   
   get '/top/:sort?/:pg?/:filter?' do |st, pg, filter|
     st = ST_NAME if st == '' || st == nil
