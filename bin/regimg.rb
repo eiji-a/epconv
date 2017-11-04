@@ -18,6 +18,7 @@ EOS
 
 def main
   init
+  db_open($TANKDIR)
 
 #=begin
   Dir.glob("*.jpg") do |f|
@@ -25,7 +26,11 @@ def main
     hs = get_hash(f)
     srcimg, dstimg = get_imgfile(f, hs)
     dirname = get_dir(hs, $TANKDIR, PICDIR)
-    add_imgfile(srcimg, dstimg, dirname, INITTAG)
+    sql = "SELECT id FROM mags WHERE magname like ?"
+    magid = db_execute(sql, PICMAG + hs[0..1] + '%')[0][0]
+    add_imgfile(srcimg, dstimg, dirname, ST_SUSP, magid)
+    listfile = $TANKDIR + PICDIR + "#{hs[0..1]}.list"
+    FileUtils.remove(listfile) if File.exist?(listfile)
   end
 #=end
 
@@ -59,7 +64,6 @@ def init
   end
 
   $DIGEST = Digest::SHA1.new
-  db_open($TANKDIR)
 end
 
 def reg_dir(f, hs)
@@ -78,61 +82,90 @@ def get_imgfile(f, hs)
 end
 
 def add_imgdir(sdir, hs)
-  dirname = get_dir(hs, $TANKDIR, MAGDIR)
-  num = 1
   puts "SDIR:#{sdir}"
+  dirname = get_dir(hs, $TANKDIR, MAGDIR)
+  magname = FILE_MAG + "-" + hs
+  magid   = 0
+  num     = 1
+  
   Dir.foreach(sdir) do |f|
     next if f =~ /^\./
     sdir2 = sdir + "/" + f
     if File.directory?(sdir2) == true
       add_imgdir(sdir2, get_hash(sdir2))
     elsif f =~ /\.jpg$/i
-      dimg = FILE_MAG + "-" + hs + "-" + sprintf("%04d", num) + ".jpg"
-      index_img(sdir, f, hs, dirname)
-      ddirname = dirname + FILE_MAG + "-" + hs
-      Dir.mkdir(ddirname) if File.exist?(ddirname) == false
-      add_imgfile(sdir + "/" + f, dimg, ddirname, false)
+      dimg = magname + "-" + sprintf("%04d", num) + ".jpg"
+      magdir = get_magdir(dirname, magname)
+      magid = get_mag(magname)
+      add_imgfile(sdir + "/" + f, dimg, magdir, ST_DEPEN, magid)
+      set_cover(sdir, f, magid, dimg)
       num += 1
     end
   end
-  listfile = $TANKDIR + MAGDIR + "#{hs[0]}.list"
+  listfile = $TANKDIR + MAGDIR + "#{hs[0..1]}.list"
   FileUtils.remove(listfile) if File.exist?(listfile)
 end
 
-def index_img(sdir, img, hs, dirname)
-  simg = sdir + "/" + img
-  bdir = File.basename(sdir)
-  #puts "BDIR=#{bdir}, IMG=#{img}"
-  idirname = dirname + "/index"
-  Dir.mkdir(idirname) if Dir.exists?(idirname) == false
-  idximg = FILE_MAG + "-" + hs + "-index.jpg"
-  dstfile = "#{idirname}/#{idximg}"
-  if simg =~ /cover/i ||
-     simg =~ /_lg\.jpg/i ||
-     File.size(simg) < COVERSIZE ||
-     img.gsub(/\([xX]\d+\)/, '') == bdir.gsub(/\([xX]\d+\)/, '') + EXT ||
-     File.exists?(dstfile) == false
-    FileUtils.copy(simg, dstfile)
-    add_tag(dstfile, INITTAG)
+def get_magdir(dirname, magname)
+  magdir = dirname + magname
+  if File.exist?(magdir) == false
+    Dir.mkdir(magdir)
+    sql = "INSERT INTO mags (magname, cover_id, createdate, status) " +
+          "VALUES (?, ?, ?, ?)"
+    db_execute(sql, magname, 1, Time.now.strftime("%Y%m%d%H%M%S"), ST_SUSP)
+  end
+  magdir
+end
+
+def get_mag(magname)
+  sql = "SELECT id FROM mags WHERE magname = ?"
+  db_execute(sql, magname)[0][0]
+end
+
+def add2mag(magid, dimg)
+  sql = "SELECT id FROM images WHERE filename = ?"
+  imid = db_execute(sql, dimg)[0][0]
+  if imid == nil || imid == ''
+    STDERR.puts StandardError "image not found: #{dimg}"
+  else
+    sql = "INSERT INTO magimage (mag_id, image_id) VALUES (?, ?)"
+    db_execute(sql, magid, imid)
   end
 end
 
-def add_imgfile(simg, dimg, dirname, tag)
+def set_cover(sdir, img, magid, dimg)
+  simg = sdir + '/' + img
+  bdir = File.basename(sdir)
+  if simg =~ /cover/i ||
+     simg =~ /_lg\.jpg/i ||
+     File.size(simg) < COVERSIZE ||
+     img.gsub(/\([xX]\d+\)/, '') == bdir.gsub(/\([xX]\d+\)/, '') + EXT
+    sql = "SELECT id FROM images WHERE filename = ?"
+    cid = db_execute(sql, dimg)[0][0]
+    if cid != nil && cid != ''
+      sql = "UPDATE mags SET cover_id = ? WHERE id = ?"
+      db_execute(sql, cid, magid)
+    end
+  end
+end
+
+def add_imgfile(simg, dimg, dirname, stat, magid)
   dstfile = "#{dirname}/#{dimg}"
   if File.exist?(dstfile)
     STDERR.puts "FILE EXISTS!: #{dstfile}"
     return
   end
   FileUtils.copy(simg, dstfile)
-  system "tag -a #{tag} #{dstfile}" if tag != false
-  insert_to_db(dimg, dstfile)
+  #system "tag -a #{tag} #{dstfile}" if tag != false
+  insert_to_db(dimg, dstfile, stat)
+  add2mag(magid, dimg)
 end
 
-def insert_to_db(dimg, dstfile)
+def insert_to_db(dimg, dstfile, stat)
   cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! #{dstfile} PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
   fp = `#{cmd}`
-  sql = "INSERT INTO images (filename, fingerprint) VALUES (?, ?)"
-  db_execute(sql, dimg, fp.unpack("H*"))
+  sql = "INSERT INTO images (filename, fingerprint, status) VALUES (?, ?, ?)"
+  db_execute(sql, dimg, fp.unpack("H*"), stat)
 end
 
 main

@@ -43,7 +43,12 @@
     createdate varchar(14),
     status text
   );
-  
+
+  create table magimage (
+    mag_id integer,
+    image_id integer
+  );
+    
 -- commands
 
 - register images
