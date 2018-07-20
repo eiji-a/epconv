@@ -9,8 +9,8 @@ require_relative 'epconvlib'
 
 NIMG = 200
 #NIMGPAGE = 50
-NIMGPAGE = 10
-LINEIMG = 5
+NIMGPAGE = 30
+LINEIMG = 10
 
 def main
   init
@@ -23,14 +23,14 @@ def main
   get '/' do
     redirect "/top/n/1/all"
   end
-  
+
   get '/top/:sort?/:pg?/:filter?' do |st, pg, filter|
     st = ST_NAME if st == '' || st == nil
     pg = 1 if pg.to_i == nil
     filter = 'all' if filter == nil
     top st, pg, filter
   end
-  
+
   get '/mag/:st/:pg/:filter/:id/:fst?' do |st, pg, filter, id, fst|
     fst = '0' if fst == nil
     mag st, pg, filter, id, fst.to_i
@@ -55,9 +55,9 @@ def main
     filter = 'all' if filter == nil
     piclist st, pg, filter
   end
-  
+
   # for manipulate
-  
+
   get '/change/:sort/:pg/:filter/:type/:id/:stat' do |st, pg, filter, type, id, stat|
     id2 = change_stat(type, id, stat)
     case type
@@ -76,7 +76,7 @@ def main
   end
 
   # for parts
-  
+
   get '/image/:jpg/:small?' do |jpg, s|
     s = if s == nil then false else true end
     content_type :jpg
@@ -114,7 +114,7 @@ def top(st, cd, filter)
   pe = ps + NIMGPAGE - 1
   @displist = mags[ps..pe]
   db_close
-  
+
   erb :top
 end
 
@@ -436,7 +436,7 @@ def piclist(st, pg, filter)
   pe = ps + NIMGPAGE - 1
   @displist = pics[ps..pe]
   db_close
-  
+
   erb :piclist
 end
 
@@ -454,7 +454,7 @@ def get_piclist(st)
       cmd = "sqlite3 #{$TANKDIR}#{DBFILE} \"#{sql}\" > #{listf}"
       system cmd
       #puts "SQL:#{cmd}"
-  
+
 =begin
       File.open($PICDIR + "#{l}.list", 'w') do |fp|
         sql = "SELECT filename, images.status, images.id " +
@@ -569,4 +569,3 @@ def set_index(id, imid)
 end
 
 main
-

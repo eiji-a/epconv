@@ -24,11 +24,12 @@ def main
   Dir.glob("*.jpg") do |f|
     next if File.directory?(f) == true
     hs = get_hash(f)
+    puts "HS: #{hs}/#{f}"
     srcimg, dstimg = get_imgfile(f, hs)
     dirname = get_dir(hs, $TANKDIR, PICDIR)
     sql = "SELECT id FROM mags WHERE magname like ?"
-    magid = db_execute(sql, PICMAG + hs[0..1] + '%')[0][0]
-    add_imgfile(srcimg, dstimg, dirname, ST_SUSP, magid)
+    #magid = db_execute(sql, PICMAG + hs[0..1] + '%')[0][0]
+    add_imgfile(srcimg, dstimg, dirname, ST_PEND, nil)
     listfile = $TANKDIR + PICDIR + "#{hs[0..1]}.list"
     FileUtils.remove(listfile) if File.exist?(listfile)
   end
@@ -52,13 +53,18 @@ def main
       end
     end
   end
-  
+
   db_close
 end
 
 def init
+  if ARGV.size != 1
+    STDERR.puts USAGE
+    exit 1
+  end
+
   $TANKDIR = ARGV[0] + '/'
-  if ARGV.size != 1 || is_tankdir($TANKDIR) == false
+  if is_tankdir($TANKDIR) == false
     STDERR.puts USAGE
     exit 1
   end
@@ -87,7 +93,7 @@ def add_imgdir(sdir, hs)
   magname = FILE_MAG + "-" + hs
   magid   = 0
   num     = 1
-  
+
   Dir.foreach(sdir) do |f|
     next if f =~ /^\./
     sdir2 = sdir + "/" + f
@@ -112,7 +118,7 @@ def get_magdir(dirname, magname)
     Dir.mkdir(magdir)
     sql = "INSERT INTO mags (magname, cover_id, createdate, status) " +
           "VALUES (?, ?, ?, ?)"
-    db_execute(sql, magname, 1, Time.now.strftime("%Y%m%d%H%M%S"), ST_SUSP)
+    db_execute(sql, magname, 1, Time.now.strftime("%Y%m%d%H%M%S"), ST_PEND)
   end
   magdir
 end
@@ -156,17 +162,18 @@ def add_imgfile(simg, dimg, dirname, stat, magid)
     return
   end
   FileUtils.copy(simg, dstfile)
+  fsize = File.size(dstfile)
+  rs = `identify -format \"%w,%h\" #{dstfile}`.split(",")
   #system "tag -a #{tag} #{dstfile}" if tag != false
-  insert_to_db(dimg, dstfile, stat)
-  add2mag(magid, dimg)
+  insert_to_db(dimg, dstfile, stat, rs[0], rs[1], fsize)
+  add2mag(magid, dimg) if magid != nil
 end
 
-def insert_to_db(dimg, dstfile, stat)
+def insert_to_db(dimg, dstfile, stat, xr, yr, sz)
   cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! #{dstfile} PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
   fp = `#{cmd}`
-  sql = "INSERT INTO images (filename, fingerprint, status) VALUES (?, ?, ?)"
-  db_execute(sql, dimg, fp.unpack("H*"), stat)
+  sql = "INSERT INTO images (filename, fingerprint, status, xreso, yreso, filesize) VALUES (?, ?, ?, ?, ?, ?)"
+  db_execute(sql, dimg, fp.unpack("H*"), stat, xr, yr, sz)
 end
 
 main
-

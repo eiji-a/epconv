@@ -42,13 +42,13 @@ DELDIR = 'deleted/'
 ST_ALL    = 'all'
 ST_FILE   = 'filed'
 ST_SKETCH = 'sketch'
-ST_SUSP   = 'suspended'
+ST_PEND   = 'pending'
 ST_DEPEN  = 'depended'
 ST_DELETE = 'deleted'
 ST_DEDUP  = 'duplicated'
 ST_EXCEPT = 'excepted'
 
-STS = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_DEPEN => 'DEP', ST_DELETE => 'DEL', ST_DEDUP => 'DUP', ST_EXCEPT => 'EXT', ST_SUSP => 'SUS'}
+STS = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_DEPEN => 'DEP', ST_DELETE => 'DEL', ST_DEDUP => 'DUP', ST_EXCEPT => 'EXT', ST_PEND => 'PND'}
 STBTN = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_EXCEPT => 'EXT'}
 STBTN2 = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_DEPEN => 'DEPE', ST_EXCEPT => 'EXT'}
 
@@ -177,4 +177,3 @@ def analyze_file(f)
   end
   return kind, type, cd, hash, id
 end
-

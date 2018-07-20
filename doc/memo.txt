@@ -48,7 +48,18 @@
     mag_id integer,
     image_id integer
   );
-    
+
+  create table classifications (
+    id integer primary key,
+    classification varchar(256)
+  );
+
+  create table classified (
+    classification_id
+    image_id
+    classvalue varchar(256)
+  );
+
 -- commands
 
 - register images
@@ -67,6 +78,3 @@ $ sqlite3 ~/work/testtank/tank.sqlite "select id, checkdate, fingerprint from im
 - install
 
 $ sudo gem install sinatra-contrib
-
-
-
