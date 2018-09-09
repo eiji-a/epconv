@@ -24,7 +24,6 @@ def main
   Dir.glob("*.jpg") do |f|
     next if File.directory?(f) == true
     hs = get_hash(f)
-    puts "HS: #{hs}/#{f}"
     srcimg, dstimg = get_imgfile(f, hs)
     dirname = get_dir(hs, $TANKDIR, PICDIR)
     sql = "SELECT id FROM mags WHERE magname like ?"
