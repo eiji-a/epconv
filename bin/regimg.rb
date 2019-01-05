@@ -16,6 +16,17 @@ usage: regimg.rb <tank_dir>
   <tank_dir> : directory of image tank
 EOS
 
+SAME_NOCHANGE = 0
+SAME_EXCHANGE = 1
+SAME_PENDING  = 2
+SAME_NEWIMAGE = 3
+
+NM_FINISH = "fin_"
+NM_TRASH = "trash_"
+NM_PENDING = "pending_"
+
+FSIZEDIFFRATE = 101  # under 101%
+
 def main
   init
   db_open($TANKDIR)
@@ -69,6 +80,7 @@ def init
   end
 
   $DIGEST = Digest::SHA1.new
+
 end
 
 def reg_dir(f, hs)
@@ -87,7 +99,7 @@ def get_imgfile(f, hs)
 end
 
 def add_imgdir(sdir, hs)
-  puts "SDIR:#{sdir}"
+  #puts "SDIR:#{sdir}"
   dirname = get_dir(hs, $TANKDIR, MAGDIR)
   magname = FILE_MAG + "-" + hs
   magid   = 0
@@ -154,23 +166,69 @@ def set_cover(sdir, img, magid, dimg)
   end
 end
 
+# ALREADY
+# EXCHANGE
+#
+def exist_same?(fp, xr, yr, fsize)
+  sql = "SELECT id, xreso, yreso, filesize FROM images WHERE fingerprint = ?"
+  res = db_execute(sql, fp.unpack("H*"))
+  return [SAME_NEWIMAGE] if res.size == 0
+  chk = if res[0][1] >= xr && res[0][2] >= yr && (res[0][3] * FSIZEDIFFRATE / 100) >= fsize then
+      [SAME_NOCHANGE, res[0][0]]
+    elsif res[0][1] <= xr && res[0][2] <= yr && res[0][3] < fsize then
+      [SAME_EXCHANGE, res[0][0]]
+    else
+      [SAME_PENDING, res[0][0]]
+    end
+end
+
 def add_imgfile(simg, dimg, dirname, stat, magid)
   dstfile = "#{dirname}/#{dimg}"
+  #STDERR.puts "ADD_IMGFILE: #{simg}, #{dstfile}, #{stat}"
   if File.exist?(dstfile)
-    STDERR.puts "FILE EXISTS!: #{dstfile}"
+    STDERR.puts "#{simg}: FILE EXISTS!: #{dstfile}"
     return
   end
+  #cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! #{dstfile} PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
+  cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! #{simg} PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
+  fp = `#{cmd}`
+  #rs = `identify -format \"%w,%h\" #{dstfile}`.split(",")
+  rs = `identify -format \"%w,%h\" #{simg}`.split(",")
+  #fsize = File.size(dstfile)
+  fsize = File.size(simg)
+  chk = exist_same?(fp, rs[0].to_i, rs[1].to_i, fsize)
+  case chk[0]
+  when SAME_NOCHANGE then
+    FileUtils.mv(simg, "#{NM_TRASH}#{simg}")
+    puts "#{simg}: already exist same image: #{chk[1]}"
+  when SAME_EXCHANGE then
+    write_image(simg, dimg, dstfile, fp, stat, rs[0].to_i, rs[1].to_i, fsize, magid)
+    delete_image(chk[1])
+    puts "#{simg}: exchange image successfully: #{chk[1]}"
+  when SAME_PENDING then
+    FileUtils.mv(simg, "#{NM_PENDING}#{simg}")
+    puts "#{simg}: cannot decide to change: #{chk[1]}"
+  when SAME_NEWIMAGE then
+    write_image(simg, dimg, dstfile, fp, stat, rs[0].to_i, rs[1].to_i, fsize, magid)
+    puts "#{simg}: regist as new image:"
+  else
+    puts "#{simg}: error status=#{chk[0]}: #{chk[1]}"
+  end
+end
+
+def delete_image(id)
+  sql = "UPDATE images SET status = 'deleted' WHERE id = ?"
+  db_execute(sql, id)
+end
+
+def write_image(simg, dimg, dstfile, fp, stat, xr, yr, sz, magid)
   FileUtils.copy(simg, dstfile)
-  fsize = File.size(dstfile)
-  rs = `identify -format \"%w,%h\" #{dstfile}`.split(",")
-  #system "tag -a #{tag} #{dstfile}" if tag != false
-  insert_to_db(dimg, dstfile, stat, rs[0], rs[1], fsize)
+  insert_to_db(dimg, dstfile, fp, stat, xr, yr, sz)
+  FileUtils.mv(simg, "#{NM_FINISH}#{simg}")
   add2mag(magid, dimg) if magid != nil
 end
 
-def insert_to_db(dimg, dstfile, stat, xr, yr, sz)
-  cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! #{dstfile} PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
-  fp = `#{cmd}`
+def insert_to_db(dimg, dstfile, fp, stat, xr, yr, sz)
   sql = "INSERT INTO images (filename, fingerprint, status, xreso, yreso, filesize) VALUES (?, ?, ?, ?, ?, ?)"
   db_execute(sql, dimg, fp.unpack("H*"), stat, xr, yr, sz)
 end

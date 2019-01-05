@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- meta charset="UTF-8" -->
+  <meta http-equiv="X-UA-Compatible" content="IE-edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="/css/bootstrap.min.css" rel="stylesheet">
+  <title>PAGE: <%= @nm %>/<%= @image %></title>
+  <!---style type="text/css">
+    body {
+    font-family: Avenir;
+    font-size: 10pt;
+    }
+  </style -->
+  <style type="text/css">
+    div.image {
+      height: <%= @ratio %>%;
+    }
+  </style>
+</head>
+<body>
+<div class="jumbotron">
+<div class="container">
+  <table>
+    <tr>
+      <td width="250px">
+       <h5>PAGE : <%= @nm %> / <%= @width %> x <%= @height %> (<%= @ratio %>%)</h5>
+      </td>
+      <td>
+        FILE: <%= @image %>
+      </td>
+    </tr>
+    <tr>
+      <td width="300px">
+        <a href="/page/<%= @nm - 1 %>" class="btn btn-default">
+          <span class="glyphicon glyphicon-backward"></span> PREV
+        </a>
+        <a href="/page/<%= @nm + 1 %>" class="btn btn-default">
+          NEXT <span class="glyphicon glyphicon-forward"></span>
+        </a>
+      </td>
+      <td>
+        <a href="/save/<%= @nm %>" class="btn btn-success">
+          <span class="glyphicon glyphicon-save"></span> SAVE
+        </a>
+        <a href="/trash/<%= @nm %>" class="btn btn-danger">
+          <span class="glyphicon glyphicon-trash"></span> TRASH
+        </a>
+      </td>
+    </tr>
+  </table>
+<div style="height: <%= @ratio %>%;" class="image">
+  <img src="/image/<%= @nm %>" height="<%= @ratio %>%" class="img-responsive">
+</div>
+</div>
+</div>
+<script src="js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -6,10 +6,15 @@ require "open-uri"
 require "rubygems"
 require "nokogiri"
 
+DEBUG = false
 MINSIZE = 20 * 1024   # 20kB
+MINLEN  = 500
 TIMEOUT = 30
 PORT = 11081
-DIVNAME = ["div.kizi-body2",
+DIVNAME = [
+           "div.content",
+           "div.kizi-body2",
+           "article.post",
            "div.entrycontent",
            "div.entry-content",
            "div.mainEntryMore",
@@ -26,17 +31,32 @@ DIVNAME = ["div.kizi-body2",
            "section.entry-content description",
            "div.main_article",
            "div.create_add",
-           "div.post"
+           "main#main",
+           "div#picmain",
+           "div#more",
+           "div.article-body",
+           "div#contentInner",
+           "section.entry-content cf",
+           "div.articles-body",
+           "div.content1",
+           "div.post",
+           "article.post",
+           "body"
           ]
 
+#UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
+UA = "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; rv:11.0) like Gecko"
 
 def get_body(url)
   charset = nil
   url2 = URI.encode url
+  #opt = {}
+  #opt['User-Agent'] = UA
+  #opt[:read_timeout] = TIMEOUT
   body = ""
   5.times do |i|
     begin
-      body = open(url2, :read_timeout=>TIMEOUT) do |f|
+      body = open(url2, "User-Agent" => UA, :read_timeout => TIMEOUT) do |f|
         charset = f.charset
         f.read
       end
@@ -76,25 +96,32 @@ def get_img(ev, cpath, pages)
   #puts "EV:#{ev}/#{ev['href'].class}"
   #ev = drilldown(ev)
   return [] if ev == nil
-  #puts "EV2:#{ev}"
+  puts "EV2:#{ev}" if DEBUG
   #$pref = ev['title'].split(/-/)[0] if ev['title'] != nil
-  jpg = if ev['href'] != nil
+  jpg = if ev['href'] != nil && ev['href'] =~ /jpg/
           ev['href']
+        elsif ev['srcset'] != nil && ev['srcset'] =~ /(http:\/\/\S+?-\d+\.jpg)/
+          $1
+        elsif ev['srcset'] != nil && ev['srcset'] =~ /(http:\/\/\d+.jpg)/
+          $1
         elsif ev['src'] != nil
           ev['src']
+        elsif ev['li'] != nil
+          nil
         end
-
+  #puts "JPG=#{jpg}" if DEBUG && jpg != nil
   #if jpg !~ /^http/ && jpg != nil
   #  jpg = cpath + "/" + jpg
-  if jpg =~ /^http/ && jpg != nil
-    #puts "JPG: #{jpg}"
-    pages << jpg if /\.jpg$/ =~ jpg
-  else
+  if jpg == nil
     if ev.children.size >= 1
       ev.children.each do |e|
         get_img(e, cpath, pages)
       end
     end
+  else
+    jpg = @fqdn + jpg if jpg !~ /^http/
+    puts "JPG: #{jpg}" if DEBUG
+    pages << jpg if /\.jpg/ =~ jpg || /\.jpeg/ =~ jpg
   end
 end
 
@@ -105,15 +132,20 @@ def load(url)
     charset = f.charset
     f.read
   end
+  /^(http:\/\/.+?\/)/ =~ url
+  @fqdn = $1
+  puts "FQDN=#{@fqdn}" if DEBUG
   #puts "HTML: #{html.class} / #{cpath}"
 
   div = ""
   doc = Nokogiri::HTML.parse(html, nil, charset)
   cont = nil
   DIVNAME.each do |d|
+    #puts "D:#{d}-----------------------------"
     c = doc.css(d)
     if c.children.size > 0
       cont = c
+      puts "C=#{c}" if DEBUG
       break
     end
   end
@@ -137,10 +169,15 @@ def load(url)
     #pg = if /\-s.jpg$/ =~ pg then pg else pg.gsub(".jpg", "-s.jpg") end
     bd = get_body(pg2)
     next if bd[1].size < MINSIZE
+    fname = "#{pref}-#{id}.jpg"
     if bd[1] != ""
-      File.open("#{pref}-#{id}.jpg", "w") do |f|
+      File.open(fname, "w") do |f|
         f.write bd[1]
       end
+    end
+    rs = `identify -format \"%w,%h\" #{fname}`.split(",")
+    if rs[0].to_i < MINLEN && rs[1].to_i < MINLEN
+      File.delete(fname)
     end
   end
   puts "#{pref}: end"

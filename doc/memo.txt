@@ -12,6 +12,10 @@
     status text
   );
 
+  alter table images add column xreso integer;
+  alter table images add column yreso integer;
+  alter table images add column filesize integer;
+
   create table tags (
     id integer primary key,
     tag varchar(256)

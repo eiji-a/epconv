@@ -83,6 +83,11 @@ def main
     image jpg, s
   end
 
+  get '/imageno/:id' do |id|
+    content_type :jpg
+    imageno id.to_i
+  end
+
   get '/index/:jpg' do |jpg|
     content_type :jpg
     index jpg
@@ -506,6 +511,26 @@ def image(jpg, s)
   else
     $PICDIR + "#{hs2}/" + jpg
   end
+
+  body = ""
+  File.open(fn) do |fp|
+      body = fp.read
+  end
+  return <<-EOS
+#{body}
+EOS
+end
+
+def imageno(id)
+  sql = "SELECT filename FROM images WHERE id = ?"
+  db_open($TANKDIR)
+  fn0 = db_execute(sql, id)[0][0]
+  db_close
+  /^(.....)-(.+)\.jpg+$/ =~ fn0
+  tp = $1
+  hs = $2
+  hs2 = hs[0..1]
+  fn = $PICDIR + "#{hs2}/" + fn0
 
   body = ""
   File.open(fn) do |fp|

@@ -56,7 +56,7 @@ def main
   res = `#{cmd}`.lines
   puts "RES: #{res.length} images"
   res.each do |l|
-    break if n >= 10000
+    break if n >= 100000
     puts "N: #{n}" if n % 1000 == 0
     im = l.chomp.split("|")
     d = im[1].match("(e.+?)-(..)")

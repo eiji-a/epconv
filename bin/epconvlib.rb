@@ -72,7 +72,7 @@ def init_base(argv)
   $TANKDIR = argv[0] + '/'
   $IPADDR  = argv[1]
   db_open($TANKDIR)
-  puts "#{$TANKDIR}, #{@DB}"
+  #puts "#{$TANKDIR}, #{@DB}"
   true
 end
 
@@ -88,7 +88,9 @@ def is_tankdir(tankdir)
 end
 
 def db_open(tankdir)
+  puts "OPEN DATABASE"
   @DB = SQLite3::Database.new(tankdir + DBFILE)
+  puts "DATABASE OPENED: #{@DB}"
 end
 
 def db_close
@@ -98,6 +100,7 @@ end
 def db_execute(sql, *args)
   NRETRY.times do |i|
     begin
+      #puts "SQL: #{sql}, ID:#{args[0]}, DB:#{@DB}"
       return @DB.execute(sql, *args)
     rescue => e
       STDERR.puts e
