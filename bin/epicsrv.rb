@@ -6,12 +6,13 @@ require "open-uri"
 require "rubygems"
 require "nokogiri"
 
-DEBUG = false
+DEBUG = true
 MINSIZE = 20 * 1024   # 20kB
 MINLEN  = 500
 TIMEOUT = 30
 PORT = 11081
 DIVNAME = [
+           "div.section",
            "div.content",
            "div.kizi-body2",
            "article.post",
@@ -109,7 +110,7 @@ def get_img(ev, cpath, pages)
         elsif ev['li'] != nil
           nil
         end
-  #puts "JPG=#{jpg}" if DEBUG && jpg != nil
+  puts "JPG=#{jpg}" if DEBUG && jpg != nil
   #if jpg !~ /^http/ && jpg != nil
   #  jpg = cpath + "/" + jpg
   if jpg == nil
@@ -121,7 +122,9 @@ def get_img(ev, cpath, pages)
   else
     jpg = @fqdn + jpg if jpg !~ /^http/
     puts "JPG: #{jpg}" if DEBUG
-    pages << jpg if /\.jpg/ =~ jpg || /\.jpeg/ =~ jpg
+    #pages << jpg if /\.jpg/ =~ jpg || /\.jpeg/ =~ jpg
+    pages << jpg  # jpgなどで終わらない場合あり
+    puts "add image"
   end
 end
 
@@ -145,7 +148,7 @@ def load(url)
     c = doc.css(d)
     if c.children.size > 0
       cont = c
-      puts "C=#{c}" if DEBUG
+      puts "D=#{d}/C=#{c}" if DEBUG
       break
     end
   end
@@ -159,22 +162,27 @@ def load(url)
   cont.children.each do |ev|
     get_img(ev, cpath, pages)
   end
+  puts "PAGE: #{pages.size} img" if DEBUG
 
   pref = Time.now.strftime("%Y%m%d%H%M%S%L")
   puts "#{url}:#{pref}(#{pages.size} pics): loading start"
   pages.each_with_index do |pg, i|
     id = sprintf("%03d", i)
     pg2 = if pg !~ /^http/ then cpath + "/" + pg else pg end
-    #puts "#{Thread.current.object_id}/#{id},#{pg2}"
+    puts "#{Thread.current.object_id}/#{id},#{pg2}"
     #pg = if /\-s.jpg$/ =~ pg then pg else pg.gsub(".jpg", "-s.jpg") end
+    puts "step0"
     bd = get_body(pg2)
+    puts "step1"
     next if bd[1].size < MINSIZE
     fname = "#{pref}-#{id}.jpg"
+    puts "step2"
     if bd[1] != ""
       File.open(fname, "w") do |f|
         f.write bd[1]
       end
     end
+    puts "step3"
     rs = `identify -format \"%w,%h\" #{fname}`.split(",")
     if rs[0].to_i < MINLEN && rs[1].to_i < MINLEN
       File.delete(fname)
