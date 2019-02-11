@@ -86,7 +86,7 @@ end
 
 def classify_img
   @images.each_with_index do |im, i|
-    puts "#{i}: #{im[1]}/#{im[2]}"
+    #puts "#{i}: #{im[1]}/#{im[2]}"
     if @fingerprint[im[5]] == nil
       #puts "REGIST: #{i}:#{im[5]}"
       @fingerprint[im[5]] = [[i, BETTER]]
@@ -116,7 +116,7 @@ def insert_to_db(im, fn)
   #   format: id, filename, filesize, x reso, y reso, fingreprint, status
   sql = "INSERT INTO images (filename, filesize, xreso, yreso, fingerprint, status) " +
         "VALUES (?, ?, ?, ?, ?, ?)"
-  db_execute(sql, fn, im[2], im[3], im[4], im[5], STAT_FILED)
+  db_execute(sql, fn, im[2], im[3], im[4], im[5], im[6])
 end
 
 def regist_newimg(im)
