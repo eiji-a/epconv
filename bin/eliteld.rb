@@ -6,12 +6,23 @@ require 'nokogiri'
 
 
 USAGE = 'Usage: eliteld.rb <loadedlist>'
-URL = 'https://www.elitebabes.com/latest-body-in-mind/'
-#URL = 'https://www.elitebabes.com/latest-mpl-studios/'
-#URL = 'https://www.elitebabes.com/latest-femjoy/'
-#URL = 'https://www.elitebabes.com/latest-zishy/'
+URLS = ['https://www.elitebabes.com/latest-alex-lynn/',
+        'https://www.elitebabes.com/latest-all-gravure/',
+        'https://www.elitebabes.com/latest-amour-angels/',
+        'https://www.elitebabes.com/latest-body-in-mind/',
+        'https://www.elitebabes.com/latest-digital-desire/',
+        'https://www.elitebabes.com/latest-domai/',
+
+
+        'https://www.elitebabes.com/latest-mpl-studios/',
+        'https://www.elitebabes.com/latest-femjoy/',
+        'https://www.elitebabes.com/latest-zishy/',
+       ]
 CLASS_LIST = 'ul.gallery-a'
 CLASS_IMG  = 'ul.gallery-b'
+MAXBABES = 100
+NOPAGE = 404
+OKPAGE = 0
 
 def get_loadedlist(lf)
   ll = Hash.new
@@ -31,17 +42,21 @@ def init
   
   @loadedfile = ARGV[0]
   @loaded = get_loadedlist(@loadedfile)
+  @nbabes = 1
 end
 
 def get_image(imgurl, referer, base)
-  #puts "IMG: #{imgurl}"
-  img = open(imgurl, "Referer" => referer) do |i|
-    i.read
-  end
-  filename = imgurl.split('/')[-1]
-  puts "FILE:#{base}#{filename} / SIZE: #{img.size}"
-  File.open("#{base}#{filename}", "w") do |fp|
-    fp.write(img)
+  begin
+    img = open(imgurl, "Referer" => referer) do |i|
+      i.read
+    end
+    filename = imgurl.split('/')[-1]
+    #puts "FILE:#{base}#{filename} / SIZE: #{img.size}"
+    File.open("#{base}#{filename}", "w") do |fp|
+      fp.write(img)
+    end
+  rescue
+    puts "IMG: #{imgurl} can't be loaded."
   end
 end
 
@@ -49,11 +64,13 @@ def loaded(url)
   File.open(@loadedfile, 'a') do |fp|
     fp.puts url
   end
+  @nbabes += 1
 end
 
 def load_page(url)
+  return if @nbabes > MAXBABES
   return if @loaded[url] == true
-  #puts "URL:#{url}"
+  puts "URL(#{@nbabes}):#{url}"
   base = Time.now.strftime("%Y%m%d%H%M%S-")
   charset = nil
   html = open(url) do |f|
@@ -70,15 +87,21 @@ def load_page(url)
   loaded(url)
 end
 
-def main
-  init
+def load_site(url)
+  return if @nbabes >= MAXBABES
   charset = nil
-  html = open(URL) do |f|
-    charset = f.charset
-    f.read
+  html = nil
+  begin
+    html = open(url) do |f|
+      charset = f.charset
+      f.read
+    end
+  rescue
+    return NOPAGE
   end
-  #puts html
+
   doc = Nokogiri::HTML.parse(html, nil, charset)
+  return NOPAGE if doc.title =~ /^404 at/
   gallery = doc.css(CLASS_LIST)
   gallery.children.each do |ev|
     #puts "LINE:#{ev['href']}"
@@ -86,8 +109,20 @@ def main
       load_page(ev2['href'])
     end
   end
-  #puts gallery
+  return OKPAGE
+end
 
+
+def main
+  init
+  URLS.shuffle.each_with_index do |u, i|
+    puts "SITE(#{i+1}/#{URLS.size}): #{u}"
+    1.step do |i|
+      return if @nbabes >= MAXBABES
+      rc = load_site(u + "page/#{i}/")
+      break if rc == NOPAGE
+    end
+  end
 end
 
 main

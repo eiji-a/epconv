@@ -31,6 +31,14 @@ URLS = ['https://www.hqbabes.com/sponsors/abbyleebrazil.com/',
         'https://www.hqbabes.com/sponsors/devineones.com/',
         'https://www.hqbabes.com/sponsors/digitaldesire.com/',
         'https://www.hqbabes.com/sponsors/dillionharperexclusive.com/',
+        'https://www.hqbabes.com/sponsors/dirtylittleholly.com/',
+        'https://www.hqbabes.com/sponsors/dominika-c.com/',
+        'https://www.hqbabes.com/sponsors/emeliapaige.com/',
+        'https://www.hqbabes.com/sponsors/eroticbeauty.com/',
+        'https://www.hqbabes.com/sponsors/errotica-archives.com/',
+        'https://www.hqbabes.com/sponsors/esperanzaplus.com/',
+        'https://www.hqbabes.com/sponsors/eternaldesire.com/',
+        'https://www.hqbabes.com/sponsors/fallinlovia.com/',
         
 
         'https://www.hqbabes.com/sponsors/queenkira.com/',
@@ -76,14 +84,17 @@ def init
 end
 
 def get_image(imgurl, referer, base)
-  #puts "IMG: #{imgurl}"
-  img = open(imgurl) do |i|
-    i.read
-  end
-  filename = imgurl.split('/')[-1]
-  #puts "FILE:#{base}#{filename} / SIZE: #{img.size}"
-  File.open("#{base}#{filename}", "w") do |fp|
-    fp.write(img)
+  begin
+    img = open(imgurl) do |i|
+      i.read
+    end
+    filename = imgurl.split('/')[-1]
+    #puts "FILE:#{base}#{filename} / SIZE: #{img.size}"
+    File.open("#{base}#{filename}", "w") do |fp|
+      fp.write(img)
+    end
+  rescue
+    puts "IMG: #{imgurl} can't be loaded."
   end
 end
 
@@ -148,7 +159,7 @@ end
 
 def main
   init
-  URLS.each_with_index do |u, i|
+  URLS.shuffle.each_with_index do |u, i|
     puts "SITE(#{i+1}/#{URLS.size}): #{u}"
     1.step do |i|
       return if @nbabes >= MAXBABES
