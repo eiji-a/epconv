@@ -25,7 +25,6 @@ URLS = ['https://www.hqbabes.com/sponsors/abbyleebrazil.com/',
         'https://www.hqbabes.com/sponsors/brookesplayhouse.com/',
         'https://www.hqbabes.com/sponsors/candicebrielle.com/',
         'https://www.hqbabes.com/sponsors/candymoune.com/',
-        'https://www.hqbabes.com/sponsors/carlotta-champagne.com/',
         'https://www.hqbabes.com/sponsors/charley-s.com/',
         'https://www.hqbabes.com/sponsors/cosmid.net/',
         'https://www.hqbabes.com/sponsors/devineones.com/',
@@ -102,7 +101,6 @@ URLS = ['https://www.hqbabes.com/sponsors/abbyleebrazil.com/',
         'https://www.hqbabes.com/sponsors/thisisglamour.com/',
         'https://www.hqbabes.com/sponsors/thisyearsmodel.com/',
         'https://www.hqbabes.com/sponsors/tiny4k.com/',
-        'https://www.hqbabes.com/sponsors/ugotitflauntit.com/',
         'https://www.hqbabes.com/sponsors/victoriamoune.com/',
         'https://www.hqbabes.com/sponsors/viparea.com/',
         'https://www.hqbabes.com/sponsors/watch4beauty.com/',
@@ -110,7 +108,7 @@ URLS = ['https://www.hqbabes.com/sponsors/abbyleebrazil.com/',
         'https://www.hqbabes.com/sponsors/x-art.com/',
         'https://www.hqbabes.com/sponsors/yonitale.com/',
         'https://www.hqbabes.com/sponsors/zemani.com/',
-        
+
 
 
 
