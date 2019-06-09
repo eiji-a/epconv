@@ -10,27 +10,48 @@
 require_relative 'epconvlib'
 
 USAGE = <<-EOS
-usage: exist.rb <tank_dir> <image>
+usage: exist.rb <tank_dir> [<image> [<image>] ...]
   <tank_dir> : directory of image tank
   <image>    : image file (.jpg)
-  <tank_dir> : directory of image tank
+  * if you don't enumerate images, the directry is searched.
 EOS
+
+HEIGHT = "100px"
 
 def main
   init
 
-  find_in_db($TARGET)
+  header
+  $TARGET.each do |t|
+    dbimg = find_in_db(t)
+    puts "#{t}: #{dbimg[0]}/#{dbimg[1]}"
+    line = <<-"EOS"
+    <tr>
+      <td><img src="file://#{$CDIR}/a.jpg"></td>
+      <td><img src="#{IMGPATH}#{dbimg[0]}" height="#{HEIGHT}"></td>
+    </tr>
+    EOS
+    puts line
+  end
+  footer
 end
 
 def init
-  if ARGV.size != 2 || is_tankdir(ARGV[0]) == false
+  if ARGV.size < 1 || is_tankdir(ARGV[0]) == false
     STDERR.puts USAGE
     exit 1
   end
 
-  $TANKDIR = ARGV[0] + '/'
+  $TANKDIR = ARGV.shift + '/'
   db_open($TANKDIR)
-  $TARGET = ARGV[1]
+  puts "TANK: #{$TANKDIR}"
+
+  $CDIR = Dir.pwd
+  if ARGV.size >= 1
+    $TARGET = ARGV
+  else
+    $TARGET = Dir.glob("*#{EXT}")
+  end
 end
 
 def find_in_db(img)
@@ -41,9 +62,32 @@ def find_in_db(img)
   cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! '#{img}' PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
   fp = `#{cmd}`
   sql = "SELECT id, filename FROM images WHERE fingerprint = ?"
+  dbimg = []
   db_execute(sql, fp.unpack("H*")).each do |r|
-    puts "#{r[0]}:(#{r[1]})"
+    dbimg[0] = r[0]
+    dbimg[1] = r[1]
+    #puts "#{r[0]}:(#{r[1]})"
   end
+  dbimg
+end
+
+def header
+  hd_str = <<-"EOS"
+<html>
+  <title> epconv: exist check </title>
+  <body>
+  <table>
+  EOS
+  puts hd_str
+end
+
+def footer
+  ft_str = <<-"EOS"
+  </table>
+  </body>
+</html>
+  EOS
+  puts ft_str
 end
 
 main
