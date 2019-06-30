@@ -1,16 +1,17 @@
 #!/usr/bin/ruby
 #
-# exist: check same images in DB or not
+# exist_del: check same images in DB or not
 #
-# usage: exist.rb <tank_dir> <image>
+# usage: exist_del.rb <tank_dir> <image>
 #   <tank_dir> : directory of image tank
 #   <image>    : image file (.jpg)
 #
 
+require 'fileutils'
 require_relative 'epconvlib'
 
 USAGE = <<-EOS
-usage: exist.rb <tank_dir> [<image> [<image>] ...]
+usage: exist_del.rb <tank_dir> [<image> [<image>] ...]
   <tank_dir> : directory of image tank
   <image>    : image file (.jpg)
   * if you don't enumerate images, the directry is searched.
@@ -19,42 +20,33 @@ EOS
 HEIGHT = "100px"
 IMGPATH = "http://192.168.11.50:4567/imageno/"
 IMGLIMIT = 10000
+FILED = 'filed'
 
 def main
   init
 
+  STDERR.print "Read Images: "
   STDERR.puts Time.now
   images = read_images($TARGETS)
+  STDERR.print "Matching: "
   STDERR.puts Time.now
   images = match_with_db(images)
-  STDERR.puts Time.now
 
-  header
+  STDERR.print "Delete images: "
+  STDERR.puts Time.now
   images.each do |k, v|
     im = v.shift
-    img = im[0]
-    imgline = ""
     v.each do |i|
-      imgline += <<-"EOS"
-      <a href="#{IMGPATH}#{i[0]}">
-        <img src="#{IMGPATH}#{i[0]}" height="#{HEIGHT}">
-      </a>
-      #{i[2]} |
-      EOS
+      status = i[2]
+      puts "#{i[1]}: |#{status}|"
+      if status == FILED
+        im.each do |img|
+          puts "delete: #{img}"
+          FileUtils.rm(img)
+        end
+      end
     end
-
-    line = <<-"EOS"
-    <tr>
-      <td>
-      <img src="file://#{$CDIR}/#{img}" height="#{HEIGHT}">
-      #{imgline}
-      </td>
-    </tr>
-    EOS
-    puts line
   end
-
-  footer
 end
 
 def init
@@ -80,9 +72,10 @@ def read_images(targets)
   i = 0
   targets.each do |t|
     #cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! '#{t}' PPM:- | tail -c #{FPSIZE * FPSIZE * 3}"
-    cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! '#{t}' PPM:-"
-    len = FPSIZE * FPSIZE * 6  # 文字数
-    fp = `#{cmd}`.unpack("H*")[0][-len..-1]
+    #cmd = "convert -filter Cubic -resize #{FPSIZE}x#{FPSIZE}! '#{t}' PPM:-"
+    #len = FPSIZE * FPSIZE * 6  # 文字数
+    #fp = `#{cmd}`.unpack("H*")[0][-len..-1]
+    fp = calc_fingerprint(t, FPSIZE)
     if images[fp] == nil
       images[fp] = [[t]]
     else
@@ -120,25 +113,6 @@ def find_in_db(img)
     #puts "#{r[0]}:(#{r[1]})"
   end
   dbimg
-end
-
-def header
-  hd_str = <<-"EOS"
-<html>
-  <title> epconv: exist check </title>
-  <body>
-  <table>
-  EOS
-  puts hd_str
-end
-
-def footer
-  ft_str = <<-"EOS"
-  </table>
-  </body>
-</html>
-  EOS
-  puts ft_str
 end
 
 main

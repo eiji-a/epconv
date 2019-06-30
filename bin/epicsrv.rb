@@ -12,6 +12,11 @@ MINLEN  = 500
 TIMEOUT = 30
 PORT = 11081
 DIVNAME = [
+#           "div.main-inner",
+           "section.post-content",
+           "div.photo-box",
+           "article.article",
+           "div.content___3Ig_d",
            "div.section",
            "div.content",
            "div.kizi-body2",
@@ -42,7 +47,6 @@ DIVNAME = [
            "div.content1",
            "div.post",
            "article.post",
-           "body"
           ]
 
 #UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
@@ -105,7 +109,7 @@ def get_img(ev, cpath, pages)
           $1
         elsif ev['srcset'] != nil && ev['srcset'] =~ /(http:\/\/\d+.jpg)/
           $1
-        elsif ev['src'] != nil
+        elsif ev['src'] != nil && ev['src'] =~ /^http/
           ev['src']
         elsif ev['li'] != nil
           nil
@@ -148,7 +152,8 @@ def load(url)
     c = doc.css(d)
     if c.children.size > 0
       cont = c
-      puts "D=#{d}/C=#{c}" if DEBUG
+#      puts "DIVNAME=#{d}/C=#{c}" if DEBUG
+      puts "DIVNAME=#{d}" if DEBUG
       break
     end
   end
@@ -171,20 +176,16 @@ def load(url)
     pg2 = if pg !~ /^http/ then cpath + "/" + pg else pg end
     puts "#{Thread.current.object_id}/#{id},#{pg2}"
     #pg = if /\-s.jpg$/ =~ pg then pg else pg.gsub(".jpg", "-s.jpg") end
-    puts "step0"
     bd = get_body(pg2)
-    puts "step1"
     next if bd[1].size < MINSIZE
     fname = "#{pref}-#{id}.jpg"
-    puts "step2"
     if bd[1] != ""
       File.open(fname, "w") do |f|
         f.write bd[1]
       end
     end
-    puts "step3"
     rs = `identify -format \"%w,%h\" #{fname}`.split(",")
-    if rs[0].to_i < MINLEN && rs[1].to_i < MINLEN
+    if rs[0].to_i < MINLEN || rs[1].to_i < MINLEN
       File.delete(fname)
     end
   end

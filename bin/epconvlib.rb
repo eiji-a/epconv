@@ -88,9 +88,9 @@ def is_tankdir(tankdir)
 end
 
 def db_open(tankdir)
-  puts "OPEN DATABASE"
+  STDERR.puts "OPEN DATABASE"
   @DB = SQLite3::Database.new(tankdir + DBFILE)
-  puts "DATABASE OPENED: #{@DB}"
+  STDERR.puts "DATABASE OPENED: #{@DB}"
 end
 
 def db_close
@@ -180,3 +180,10 @@ def analyze_file(f)
   end
   return kind, type, cd, hash, id
 end
+
+def calc_fingerprint(img, fpsize)
+    cmd = "convert -filter Cubic -resize #{fpsize}x#{fpsize}! '#{img}' PPM:-"
+    len = fpsize * fpsize * 6  # 文字数
+    fp = `#{cmd}`.unpack("H*")[0][-len..-1]
+end
+

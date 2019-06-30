@@ -88,6 +88,11 @@ def main
     imageno id.to_i
   end
 
+  get '/imageinfo/:id' do |id|
+    content_type :text
+    imageinfo id.to_i
+  end
+
   get '/index/:jpg' do |jpg|
     content_type :jpg
     index jpg
@@ -530,7 +535,12 @@ def imageno(id)
   tp = $1
   hs = $2
   hs2 = hs[0..1]
-  fn = $PICDIR + "#{hs2}/" + fn0
+  fn = if tp =~ /^#{FILE_PIC}/ then
+    $PICDIR + "#{hs2}/" + fn0
+  else
+    /^(.+)-(.+)/ =~ hs
+    $MAGDIR + "#{hs2}/#{tp}-#{$1}/" + fn0
+  end
 
   body = ""
   File.open(fn) do |fp|
@@ -539,6 +549,14 @@ def imageno(id)
   return <<-EOS
 #{body}
 EOS
+end
+
+def imageinfo(id)
+  sql = "SELECT xreso, yreso, filesize, status, filename FROM images WHERE id = ?"
+  db_open($TANKDIR)
+  finfo = db_execute(sql, id)[0]
+  db_close
+  return finfo.join("/")
 end
 
 def index(jpg)

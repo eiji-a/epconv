@@ -25,6 +25,7 @@ NEWIMG = -1
 DIR_FIN   = 'fin'
 DIR_TRASH = 'trash'
 DIR_HOLD  = 'hold'
+DIR_ERR   = 'error'
 STAT_FILED = 'filed'
 STAT_DUP   = 'duplicated'
 
@@ -51,6 +52,7 @@ def init
   FileUtils.mkdir(DIR_FIN)   if Dir.exist?(DIR_FIN)   == false
   FileUtils.mkdir(DIR_TRASH) if Dir.exist?(DIR_TRASH) == false
   FileUtils.mkdir(DIR_HOLD)  if Dir.exist?(DIR_HOLD)  == false
+  FileUtils.mkdir(DIR_ERR)   if Dir.exist?(DIR_ERR)   == false
 end
 
 def read_tank
@@ -62,10 +64,14 @@ def read_tank
 end
 
 def get_img_info(fn)
-  rs = `identify -format \"%w,%h\" #{fn}`.split(",")
+  rs = `identify -format \"%w,%h\" '#{fn}'`.split(",")
   fsize = File.size(fn)
   fp = `#{CONV1} #{fn} #{CONV2}`.unpack("H*")[0]
-  [NEWIMG, fn, fsize.to_i, rs[0].to_i, rs[1].to_i, fp]
+  if $? == 0
+    [NEWIMG, fn, fsize.to_i, rs[0].to_i, rs[1].to_i, fp]
+  else
+    FileUtils.move(fn, DIR_ERR)
+  end
 end
 
 def read_files
@@ -75,10 +81,10 @@ def read_files
 end
 
 def better?(im1, im2)
-  if im1[2] > im2[2] && im1[3] > im2[3] && im1[4] > im2[4]
-    BETTER
-  elsif im1[2] <= im2[2] && im1[3] <= im2[3] && im1[4] <= im2[4]
+  if im1[2] <= im2[2] && im1[3] <= im2[3] && im1[4] <= im2[4]
     WORSE
+  elsif im1[2] >= im2[2] && im1[3] >= im2[3] && im1[4] >= im2[4]
+    BETTER
   else
     HOLD
   end
@@ -116,7 +122,7 @@ def insert_to_db(im, fn)
   #   format: id, filename, filesize, x reso, y reso, fingreprint, status
   sql = "INSERT INTO images (filename, filesize, xreso, yreso, fingerprint, status) " +
         "VALUES (?, ?, ?, ?, ?, ?)"
-  db_execute(sql, fn, im[2], im[3], im[4], im[5], im[6])
+  db_execute(sql, fn, im[2], im[3], im[4], im[5], STAT_FILED)
 end
 
 def regist_newimg(im)
@@ -140,7 +146,9 @@ def discard_img(im)
   else
     p = get_path(im[1])
     change_stat_on_db(im, STAT_DUP)
-    FileUtils.move("#{p[0]}#{im[1]}", DIR_TRASH)
+    if File.exist?("#{p[0]}#{im[1]}")
+      FileUtils.move("#{p[0]}#{im[1]}", DIR_TRASH)
+    end
     puts "REMOVE DB: #{im[1]}/#{p.join(":")}"
   end
 end

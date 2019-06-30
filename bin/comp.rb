@@ -7,6 +7,8 @@ require 'sinatra/reloader'
 
 require_relative 'epconvlib'
 
+USAGE = 'Usage: comp.rb <tank dir> <ip address>'
+
 def main
   init
   @im = load_image
@@ -41,7 +43,10 @@ def main
 end
 
 def init
-  exit 1 if init_base(ARGV) == false
+  if init_base(ARGV) == false
+    STDERR.puts USAGE
+    exit 1
+  end
   $MAGDIR = $TANKDIR + MAGDIR
   $PICDIR = $TANKDIR + PICDIR
 end
