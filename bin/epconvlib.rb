@@ -47,6 +47,7 @@ ST_DEPEN  = 'depended'
 ST_DELETE = 'deleted'
 ST_DEDUP  = 'duplicated'
 ST_EXCEPT = 'excepted'
+ST_DISCD  = 'discarded'
 
 STS = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_DEPEN => 'DEP', ST_DELETE => 'DEL', ST_DEDUP => 'DUP', ST_EXCEPT => 'EXT', ST_PEND => 'PND'}
 STBTN = {ST_FILE => 'FIL', ST_SKETCH => 'SKE', ST_EXCEPT => 'EXT'}
@@ -68,7 +69,7 @@ ST_TIME = 't'
 # -------------------------
 
 def init_base(argv)
-  return false if ARGV.size < 2 || is_tankdir(argv[0]) == false
+  return false if argv.size < 2 || is_tankdir(argv[0]) == false
   $TANKDIR = argv[0] + '/'
   $IPADDR  = argv[1]
   db_open($TANKDIR)
@@ -151,6 +152,20 @@ def get_path(f)
            ""
          end
   return cdpath, path, path + f
+end
+
+def fname_to_path(fn)
+  /^(.....)-(.+)\.jpg+$/ =~ fn
+  tp = $1
+  hs = $2
+  hs2 = hs[0..1]
+  fn2 = if tp =~ /^#{FILE_PIC}/ then
+    $PICDIR + "#{hs2}/" + fn
+  else
+    /^(.+)-(.+)/ =~ hs
+    $MAGDIR + "#{hs2}/#{tp}-#{$1}/" + fn
+  end
+  fn2
 end
 
 def analyze_file(f)

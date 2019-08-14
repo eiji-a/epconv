@@ -57,7 +57,8 @@ end
 
 def read_tank
   sql = "SELECT id, filename, filesize, xreso, yreso, fingerprint " +
-        "  FROM images WHERE status = '#{STAT_FILED}'"
+        "  FROM images"
+  #"  FROM images WHERE status = '#{ST_FILE}'"
   db_execute(sql).each do |i|
     @images << i
   end
@@ -122,7 +123,7 @@ def insert_to_db(im, fn)
   #   format: id, filename, filesize, x reso, y reso, fingreprint, status
   sql = "INSERT INTO images (filename, filesize, xreso, yreso, fingerprint, status) " +
         "VALUES (?, ?, ?, ?, ?, ?)"
-  db_execute(sql, fn, im[2], im[3], im[4], im[5], STAT_FILED)
+  db_execute(sql, fn, im[2], im[3], im[4], im[5], ST_PEND)
 end
 
 def regist_newimg(im)
@@ -145,7 +146,7 @@ def discard_img(im)
     puts "TRASH NEW: #{im[1]}"
   else
     p = get_path(im[1])
-    change_stat_on_db(im, STAT_DUP)
+    change_stat_on_db(im, ST_DISCD)
     if File.exist?("#{p[0]}#{im[1]}")
       FileUtils.move("#{p[0]}#{im[1]}", DIR_TRASH)
     end

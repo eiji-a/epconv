@@ -32,7 +32,7 @@ data ColorVector = ColorVector
   } deriving (Eq, Show)
 type ColorVectorMap = KT.KdTree Double ColorVector
 
-data CvStatus = FILED | TEMP | DISCARDED | DUPLICATED | INFERIOR deriving (Eq, Show)
+data CvStatus = FILED | PEND | DISCARDED | DUPLICATED | INFERIOR deriving (Eq, Show)
 
 -- constants
 --   status
@@ -103,7 +103,7 @@ fp2colvec oreso vreso imgid fp st = ColorVector pixel imgid fp st'
     pixel = transpose $ map (summary d vreso) chs
     st' = case st of
       "filed"      -> FILED
-      "temp"       -> TEMP
+      "pending"    -> PEND
       "deleted"    -> DISCARDED
       "duplicated" -> DUPLICATED
       "inferior"   -> INFERIOR
@@ -119,7 +119,7 @@ colvec2status :: ColorVector -> CvStatus
 colvec2status (ColorVector _ _ _ st) = st
 
 isValid :: ColorVector -> Bool
-isValid (ColorVector _ _ _ st) = (st == FILED || st == TEMP)
+isValid (ColorVector _ _ _ st) = (st == FILED || st == PEND)
 
 -- internal functions
 

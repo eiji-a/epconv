@@ -18,6 +18,11 @@ def main
   set :server, %w[webrick]
   set :bind, $IPADDR
 
+  before do
+    headers 'Access-Control-Allow-Origin' => '*'
+    headers 'Access-Control-Allow-Headers' => 'Origin, X-Requested-With, Content-Type, Accept'
+  end
+
   # for page
 
   get '/' do
@@ -97,6 +102,64 @@ def main
     content_type :jpg
     index jpg
   end
+
+  # findsame APIs
+
+  get '/findsame/:len/:skip' do |len, skip|
+    content_type :json
+    findsame len.to_i, skip.to_i
+  end
+
+  get '/discardfs/:imgid/:len/:skip' do |imgid, len, skip|
+    discard imgid.to_i
+    content_type :json
+    findsame len.to_i, skip.to_i
+  end
+
+  get '/revivefs/:imgid/:len/:skip' do |imgid, len, skip|
+    revive imgid.to_i
+    content_type :json
+    findsame len.to_i, skip.to_i
+  end
+
+  # viewimage APIs
+
+  get '/viewimage/:len/:skip' do |len, skip|
+    content_type :json
+    viewimage len.to_i, skip.to_i
+  end
+
+  # pendings APIs
+
+  get '/pendings/:len/:skip' do |len, skip|
+    content_type :json
+    pendings len.to_i, skip.to_i
+  end
+
+  get '/discardpd/:imgid/:len/:skip' do |imgid, len, skip|
+    discard imgid.to_i
+    content_type :json
+    pendings len.to_i, skip.to_i
+  end
+
+  get '/revivepd/:imgid/:len/:skip' do |imgid, len, skip|
+    revive imgid.to_i
+    content_type :json
+    pendings len.to_i, skip.to_i
+  end
+
+  get '/confirm/:len/:skip' do |len, skip|
+    confirm len.to_i, skip.to_i
+    content_type :json
+    pendings len.to_i, skip.to_i
+  end
+
+  get '/refresh/:len' do |len|
+    content_type :json
+    refresh_images
+    pendings len.to_i, 0
+  end
+
 end
 
 def init
@@ -109,7 +172,99 @@ def init
       $CACHE << "#{c1}#{c2}"
     end
   end
+
+  $discarded_image = __dir__ + "/../doc/discarded.jpg"
+
+  inquire_image_info
+  refresh_images
+  
+  $fslist = Array.new
+  if ARGV.size == 3
+    $fsfile = ARGV[2]
+    read_fslist($fsfile)
+  end
+
 end
+
+def refresh_images
+  make_viewimages
+  make_pendings
+end
+
+def make_viewimages
+  print "Making view images ... "
+  $viewimages = Array.new
+  $images.each do |k, v|
+    #fn = fname_to_path(v[5])
+    $viewimages << v if v[4] == ST_FILE
+  end
+  puts "done."
+end
+
+def make_pendings
+  print "Making pending images ... "
+  $pendimages = Array.new
+  $images.each do |k, v|
+    #fn = fname_to_path(v[5])
+    $pendimages << v if v[4] == ST_PEND || v[4] == ST_DISCD
+  end
+  puts "done."
+end
+
+def inquire_image_info
+  print "Reading all image infomations ... "
+  $images = Hash.new
+  db_open($TANKDIR)
+  sql = "SELECT id, xreso, yreso, filesize, status, filename FROM images;"
+  db_execute(sql).each do |r|
+    $images[r[0].to_i] = [r[0], r[1], r[2], r[3], r[4], r[5]]
+  end
+  db_close
+  puts "done."
+end
+
+def check_images(id0, ids)
+  img0 = $images[id0.to_i]
+  maghead = if img0[5] =~ /^#{FILE_MAG}/ then img0[5].slice(0, 46) else "" end
+  maxarea = img0[1].to_i * img0[2].to_i
+  maxfsz  = img0[3].to_i
+
+  imgs = Array.new
+  ids.each do |i|
+    img = $images[i.to_i]
+    next if maghead != "" && img[5] =~ /^#{maghead}/
+    # next if img[4] == 'duplicated' || img[4] == 'deleted'
+    next if $parent[id0] != nil
+    next if img[2].to_i / img[1].to_i > 5
+
+    $parent[i] = id0
+    imgs << i.to_i
+  end
+  return nil if imgs.size == 0
+  [id0.to_i] + imgs
+end
+
+def read_fslist(fname)
+  print "making findsame list ... "
+  $parent = Hash.new
+  File.open(fname) do |fp|
+    h = fp.gets
+    @h = h
+
+    fp.each do |l|
+      img = l.split(/:/)
+      img[1] =~ /^\[(.+)\]$/
+      is = $1.split(/,/)
+
+      images = check_images(img[0], is)
+      next if images == nil
+      $fslist << images
+    end
+  end
+  puts "done."
+end
+
+### RESTful APIs
 
 def top(st, cd, filter)
   db_open($TANKDIR)
@@ -527,10 +682,15 @@ EOS
 end
 
 def imageno(id)
+=begin
   sql = "SELECT filename FROM images WHERE id = ?"
   db_open($TANKDIR)
   fn0 = db_execute(sql, id)[0][0]
   db_close
+=end
+  fn0 = $images[id][5]
+  fn = fname_to_path(fn0)
+=begin
   /^(.....)-(.+)\.jpg+$/ =~ fn0
   tp = $1
   hs = $2
@@ -541,10 +701,12 @@ def imageno(id)
     /^(.+)-(.+)/ =~ hs
     $MAGDIR + "#{hs2}/#{tp}-#{$1}/" + fn0
   end
+=end
 
   body = ""
+  fn = if File.exist?(fn) == false then $discarded_image else fn end
   File.open(fn) do |fp|
-      body = fp.read
+    body = fp.read
   end
   return <<-EOS
 #{body}
@@ -552,11 +714,17 @@ EOS
 end
 
 def imageinfo(id)
-  sql = "SELECT xreso, yreso, filesize, status, filename FROM images WHERE id = ?"
-  db_open($TANKDIR)
-  finfo = db_execute(sql, id)[0]
-  db_close
-  return finfo.join("/")
+  i = @images[id.to_i]
+  return <<-EOS
+{
+  id:    #{i[0]}
+  xreso: #{i[1]}
+  yreso: #{i[2]}
+  fsize: #{i[3]}
+  stat:  #{i[4]}
+  fname: #{i[5]}
+}
+  EOS
 end
 
 def index(jpg)
@@ -609,6 +777,133 @@ def set_index(id, imid)
   mn = db_execute(sql, id)[0][0]
   db_close
   del_listfile(mn)
+end
+
+def findsame(len, skip)
+  skip = if skip < 0 then 0 else skip end
+  len = if len < 1 then 1 else len end
+  fslist = $fslist[skip..(skip + len - 1)]
+  nsame  = $fslist.length
+  
+  json = <<-EOS
+{
+  "nimage": #{nsame},
+  "images": [
+  EOS
+  llist = Array.new
+  fslist.each do |l|
+    l2 = <<-EOS
+    [
+    EOS
+    jlist = Array.new
+    l.each do |i|
+      im = $images[i]
+      j = <<-EOS
+      {
+        "id": #{im[0]},
+        "filename": "#{im[5]}",
+        "xreso": #{im[1]},
+        "yreso": #{im[2]},
+        "filesize": #{im[3]},
+        "status": "#{im[4]}"
+      }
+      EOS
+      jlist << j
+    end
+    l2 += jlist.join(",")
+    l2 += <<-EOS
+    ]
+    EOS
+    llist << l2
+  end
+  json += llist.join(",")
+  json += <<-EOS
+  ]
+}
+  EOS
+end
+
+def discard(imgid)
+  change_status(imgid, ST_DISCD)
+end
+
+def revive(imgid)
+  change_status(imgid, ST_FILE)
+end
+
+def change_status(imgid, st)
+  db_open($TANKDIR)
+  sql = "UPDATE images SET status = ? WHERE id = ?"
+  db_execute(sql, st, imgid)
+  db_close
+  $images[imgid][4] = st
+end
+
+# viewimage APIs
+
+def viewimage(len, skip)
+  skip = if skip < 0 then 0 else skip end
+  len = if len < 1 then 1 else len end
+  vimages = $viewimages[skip..(skip + len - 1)]
+  nimage  = $viewimages.length
+    
+  json = Hash.new
+  json['nimage'] = nimage
+  json['images'] = Array.new
+  vimages.each do |i|
+    img = Hash.new
+    img['id'] = i[0]
+    img['filename'] = i[5]
+    img['xreso']    = i[1]
+    img['yreso']    = i[2]
+    img['filesize'] = i[3]
+    img['status']   = i[4]
+    json['images'] << img
+  end
+  json.to_json
+
+end
+
+# pendingimage APIs
+
+def pendings(len, skip)
+  skip = if skip < 0 then 0 else skip end
+  len = if len < 1 then 1 else len end
+  vimages = $pendimages[skip..(skip + len - 1)]
+  nimage  = $pendimages.length
+    
+  json = Hash.new
+  json['nimage'] = nimage
+  json['images'] = Array.new
+  vimages.each do |i|
+    img = Hash.new
+    img['id'] = i[0]
+    img['filename'] = i[5]
+    img['xreso']    = i[1]
+    img['yreso']    = i[2]
+    img['filesize'] = i[3]
+    img['status']   = i[4]
+    json['images'] << img
+  end
+  json.to_json
+
+end
+
+# confirm pending images APIs
+
+def confirm(len, skip)
+  skip = if skip < 0 then 0 else skip end
+  len = if len < 1 then 1 else len end
+  vimages = $pendimages[skip..(skip + len - 1)]
+  nimage  = $pendimages.length
+
+  vimages.each do |i|
+    if i[4] == ST_PEND
+      change_status(i[0], ST_FILE)
+    elsif i[4] == ST_DISCD
+      change_status(i[0], ST_DELETE)
+    end
+  end
 end
 
 main

@@ -1,6 +1,8 @@
 #/usr/bin/ruby
 #
 
+require_relative 'epconvlib'
+
 USAGE = 'Usage: findsame2html.rb [<dispsize> [<skipsize>]]'
 URL = 'http://192.168.11.50:4567/imageno/'
 TANK = '/Volumes/eahd2/pictures/hptank/tank.sqlite'
@@ -29,15 +31,45 @@ def init
   
 end
 
-def info_html(id)
-  im = @images[id.to_i]
-  i = im[0]
-  x = im[1]
-  y = im[2]
-  f = im[3].gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1,')
-  s = im[4]
-  n = im[5]
-  "#{n}<br/>(#{i}) #{x} x #{y} / <strong>#{f}</strong> bytes [#{s}]"
+def check_images(id0, ids)
+  img0 = @images[id0.to_i]
+  maghead = if img0[5] =~ /^#{FILE_MAG}/ then img0[5].slice(0, 46) else "" end
+  maxarea = img0[1].to_i * img0[2].to_i
+  maxfsz  = img0[3].to_i
+
+  imgs = Array.new
+  ids.each do |i|
+    img = @images[i.to_i]
+    next if maghead != "" && img[5] =~ /^#{maghead}/
+    next if img[4] == 'duplicated'
+    next if @parent[id0] != nil
+    next if img[2].to_i / img[1].to_i > 5
+
+    @parent[i] = id0
+    area = img[1].to_i * img[2].to_i
+    maxarea = if area > maxarea then area else maxarea end
+    maxfsz  = if img[3].to_i > maxfsz then img[3].to_i else maxfsz end
+    imgs << i.to_i
+  end
+  return nil if imgs.size == 0
+  [maxarea, maxfsz] + [id0.to_i] + imgs
+end
+
+def info_html(id, maxarea, maxfsz)
+  im = @images[id]
+  id = im[0]
+  xr = im[1]
+  yr = im[2]
+  fs = im[3].gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1,')
+  st = im[4]
+  nm = im[5]
+  area = im[1].to_i * im[2].to_i
+  szhtml = "#{xr} x #{yr}"
+  szhtml = "<strong>#{szhtml}</strong>" if area >= maxarea
+  fshtml = "#{fs}"
+  fshtml = "<strong>#{fshtml}</strong>" if im[3].to_i >= maxfsz
+
+  "#{nm}<br/>(#{id}) #{szhtml} / #{fshtml} bytes [#{st}]"
 end
 
 def put_result(l)
@@ -63,6 +95,7 @@ def put_header
     </div>
   </div>
   </section>
+  <section class="section">
   <div class="container is-fluid">
   EOS
 end
@@ -70,6 +103,7 @@ end
 def put_footer
   print <<-"EOS"
   </div>
+  </section>
   </body>
 </html>
   EOS
@@ -81,6 +115,7 @@ def read_list
   @h = h
 
   @list = Hash.new
+  @parent = Hash.new
   cnt = 0
   skip = 0
   STDIN.each do |l|
@@ -88,18 +123,20 @@ def read_list
       skip += 1
       next
     end
-    break if cnt > @disp
+    break if cnt >= @disp
 
     img = l.split(/:/)
     img[1] =~ /^\[(.+)\]$/
     is = $1.split(/,/)
-    @list[img[0]] = is
 
-          #{info_html(img[0])}
-    is.each do |i|
-      info = info_html(i)
-      next if info =~ /deleted/
-    end
+    images = check_images(img[0], is)
+    next if images == nil
+
+    @list[img[0]] = images
+    #is.each do |i|
+    #  info = info_html(i)
+    #  next if info =~ /deleted/
+    #end
 
     cnt += 1
   end
@@ -112,28 +149,20 @@ def main
 
   put_header
 
+  idx = 1
   @list.each do |k, v|
     print <<-"EOS"
-    <div class="columns">
-      <div class="column is-3 is-marginless">
-      <div class="box">
-        #{info_html(k)}
-        <br/>
-        <a href="#{URL}#{k}">
-          <figure class="image">
-            <img src="#{URL}#{k}">
-          </figure>  
-        </a>
-      </div>
-      </div>
+    <div class="box">
+    No. #{@skip + idx}
+    <div class="columns is-gapless">
     EOS
 
+    maxarea = v.shift
+    maxfsz  = v.shift
     v.each do |i|
-      info = info_html(i)
-      #next if info =~ /deleted/
+      info = info_html(i, maxarea, maxfsz)
       print <<-"EOS"
       <div class="column is-3 is-marginless">
-      <div class="box">
         #{info}
         <br/>
         <a href="#{URL}#{i}">
@@ -142,13 +171,14 @@ def main
           </figure>  
         </a>
       </div>
-      </div>
       EOS
     end
 
     print <<-"EOS"
     </div>
+    </div>
     EOS
+    idx += 1
   end
 
   put_footer
