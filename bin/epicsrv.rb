@@ -6,6 +6,8 @@ require "open-uri"
 require "rubygems"
 require "nokogiri"
 
+USAGE = 'Usage: epicsrv.rb <port> <logfile>'
+
 DEBUG = true
 MINSIZE = 20 * 1024   # 20kB
 MINLEN  = 500
@@ -13,11 +15,11 @@ TIMEOUT = 30
 PORT = 11081
 DIVNAME = [
 #           "div.main-inner",
+           "div.section",
            "section.post-content",
            "div.photo-box",
            "article.article",
            "div.content___3Ig_d",
-           "div.section",
            "div.content",
            "div.kizi-body2",
            "article.post",
@@ -47,6 +49,7 @@ DIVNAME = [
            "div.content1",
            "div.post",
            "article.post",
+           "entry_img_list",
           ]
 
 #UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
@@ -103,7 +106,7 @@ def get_img(ev, cpath, pages)
   return [] if ev == nil
   puts "EV2:#{ev}" if DEBUG
   #$pref = ev['title'].split(/-/)[0] if ev['title'] != nil
-  jpg = if ev['href'] != nil && ev['href'] =~ /jpg/
+  jpg = if ev['href'] != nil && ev['href'] =~ /jpg$/
           ev['href']
         elsif ev['srcset'] != nil && ev['srcset'] =~ /(http:\/\/\S+?-\d+\.jpg)/
           $1
@@ -192,18 +195,61 @@ def load(url)
   puts "#{pref}: end"
 end
 
+def log_url(url)
+  if $logs[url] == true
+    STDERR.puts "URL(#{url}) is already downloaded."
+    return false
+  else
+    $logs[url] = true
+    File.open($logfile, 'a') do |fp|
+      fp.puts(url)
+    end
+  end
+  true
+end
+
 def service(client)
   while url = client.gets do
-    Thread.start(url) do |u|
-      load(url.chomp)
+    if log_url(url.chomp) == true
+      Thread.start(url) do |u|  
+        load(url.chomp)
+      end
     end
   end
   client.close
 end
 
-def main
-  $port = if ARGV[0] == nil then PORT else ARGV[0].to_i end
+def init
+  if ARGV.size != 2
+    STDERR.puts USAGE
+    exit 1
+  end
+
+  if ARGV[0].match(/[0-9]+/)
+    $port = ARGV[0].to_i
+  else
+    $port = PORT
+  end
+
+  if File.exist?(ARGV[1])
+    $logfile = ARGV[1]
+  else
+    STDERR.puts USAGE
+    exit 1
+  end
+
+  $logs = Hash.new
+  File.open($logfile) do |fp|
+    fp.each do |l|
+      $logs[l.chomp.strip] = true
+    end
+  end
+
   puts "Waiting connections on port #{$port}."
+end
+
+def main
+  init
   server = TCPServer.open($port)
   loop do
     c = server.accept
