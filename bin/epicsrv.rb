@@ -200,6 +200,7 @@ def log_url(url)
     STDERR.puts "URL(#{url}) is already downloaded."
     return false
   else
+    return false if url !~ /^http/
     $logs[url] = true
     File.open($logfile, 'a') do |fp|
       fp.puts(url)
@@ -241,6 +242,7 @@ def init
   $logs = Hash.new
   File.open($logfile) do |fp|
     fp.each do |l|
+      STDERR.puts "URL:#{l}"
       $logs[l.chomp.strip] = true
     end
   end
