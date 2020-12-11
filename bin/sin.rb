@@ -224,24 +224,33 @@ def inquire_image_info
 end
 
 def check_images(id0, ids)
+  maxarea = 0
+  maxfsz = 0
+  imgs = Array.new
+
   img0 = $images[id0.to_i]
   maghead = if img0[5] =~ /^#{FILE_MAG}/ then img0[5].slice(0, 46) else "" end
-  maxarea = img0[1].to_i * img0[2].to_i
-  maxfsz  = img0[3].to_i
+  if img0[4] != ST_DEDUP && img0[4] != ST_DELETE && img0[4] != ST_DISCD
+    imgs << id0.to_i
+    maxarea = img0[1].to_i * img0[2].to_i
+    maxfsz  = img0[3].to_i
+  end
 
-  imgs = Array.new
   ids.each do |i|
     img = $images[i.to_i]
     next if maghead != "" && img[5] =~ /^#{maghead}/
-    # next if img[4] == 'duplicated' || img[4] == 'deleted'
+    next if img[4] == ST_DEDUP || img[4] == ST_DELETE || img[4] == ST_DISCD
     next if $parent[id0] != nil
     next if img[2].to_i / img[1].to_i > 5
 
     $parent[i] = id0
     imgs << i.to_i
   end
-  return nil if imgs.size == 0
-  [id0.to_i] + imgs
+  if imgs.size <= 1
+    nil
+  else
+    imgs
+  end
 end
 
 def read_fslist(fname)
@@ -714,7 +723,7 @@ EOS
 end
 
 def imageinfo(id)
-  i = @images[id.to_i]
+  i = $images[id.to_i]
   return <<-EOS
 {
   id:    #{i[0]}
