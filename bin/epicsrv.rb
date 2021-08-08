@@ -5,16 +5,20 @@ require 'socket'
 require "open-uri"
 require "rubygems"
 require "nokogiri"
+require "fileutils"
 
 USAGE = 'Usage: epicsrv.rb <port> <logfile>'
 
 DEBUG = true
 MINSIZE = 20 * 1024   # 20kB
-MINLEN  = 500
-TIMEOUT = 30
+MINLEN  = 400
+TIMEOUT = 300
 PORT = 11081
 DIVNAME = [
 #           "div.main-inner",
+           "div.bookview-wrap",
+           "div#comic-area",
+           "div.mainmore",
            "div.section",
            "section.post-content",
            "div.photo-box",
@@ -53,7 +57,9 @@ DIVNAME = [
           ]
 
 #UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
-UA = "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; rv:11.0) like Gecko"
+#UA = "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; rv:11.0) like Gecko"
+UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"
+
 
 def get_body(url)
   charset = nil
@@ -62,25 +68,34 @@ def get_body(url)
   #opt['User-Agent'] = UA
   #opt[:read_timeout] = TIMEOUT
   body = ""
-  5.times do |i|
+  succ = false
+  20.times do |i|
     begin
       body = open(url2, "User-Agent" => UA, :read_timeout => TIMEOUT) do |f|
         charset = f.charset
         f.read
       end
+      succ = true
       break
     rescue StandardError => e
       STDERR.puts "ERROR: #{e}"
       STDERR.puts "RETRY(#{i}) #{url2}"
+      if e.to_s == "404 Not Found"
+        url2 = url2.gsub(".jpg", ".png")
+      end
     end
   end
-  return [charset, body]
+  if succ == true
+    return [charset, body]
+  else
+    return [nil, nil]
+  end
 end
 
 def child_pages(children)
   children.each do |event|
     jpg = event['href']
-    $pages << jpg if /\.jpg$/ =~ jpg
+    $pages << jpg if /\.jpg$/ =~ jpg || /\.png$/ =~ jpg
   end
 end
 
@@ -104,7 +119,7 @@ def get_img(ev, cpath, pages)
   #puts "EV:#{ev}/#{ev['href'].class}"
   #ev = drilldown(ev)
   return [] if ev == nil
-  puts "EV2:#{ev}" if DEBUG
+  #puts "EV2:#{ev}" if DEBUG
   #$pref = ev['title'].split(/-/)[0] if ev['title'] != nil
   jpg = if ev['href'] != nil && ev['href'] =~ /jpg$/
           ev['href']
@@ -135,6 +150,20 @@ def get_img(ev, cpath, pages)
   end
 end
 
+def zip_images(pref)
+  pref2 = pref.gsub(/\[/, "\\[").gsub(/\]/, "\\]")
+  zipfile = pref2 + ".zip"
+  images  = "#{pref2}-*.jpg #{pref2}-*.png"
+  zippeddir = "zippedimage"
+  system "zip #{zipfile} #{images}"
+  if Dir.exist?(zippeddir) == false
+    FileUtils.mkdir(zippeddir)
+  end
+  images.split.each do |im|
+    system("mv #{im} #{zippeddir}/")
+  end
+end
+
 def load(url)
   cpath = File.dirname url
   charset = nil
@@ -149,6 +178,8 @@ def load(url)
 
   div = ""
   doc = Nokogiri::HTML.parse(html, nil, charset)
+  #$TITLE = doc.title.split(/|/)[0].gsub(/\s+/, '_').gsub(/\(/, '[').gsub(/\)/, ']').gsub(/\//, '_').gsub(/&/, 'and')
+  $TITLE = doc.title.split(/\|/)[0].gsub(/'/, '_').gsub(/\s+/, '_').gsub(/\(/, '[').gsub(/\)/, ']').gsub(/\//, '_').gsub(/&/, 'and')
   cont = nil
   DIVNAME.each do |d|
     #puts "D:#{d}-----------------------------"
@@ -172,14 +203,21 @@ def load(url)
   end
   puts "PAGE: #{pages.size} img" if DEBUG
 
-  pref = Time.now.strftime("%Y%m%d%H%M%S%L")
+  #pref = if $TITLE == '' then Time.now.strftime("%Y%m%d%H%M%S%L") else $TITLE end
+  pref = $TITLE + '-' + Time.now.strftime("%Y%m%d%H%M%S%L")
+
   puts "#{url}:#{pref}(#{pages.size} pics): loading start"
+  succ = true
   pages.each_with_index do |pg, i|
-    id = sprintf("%03d", i)
+    id = sprintf("%04d", i)
     pg2 = if pg !~ /^http/ then cpath + "/" + pg else pg end
     puts "#{Thread.current.object_id}/#{id},#{pg2}"
     #pg = if /\-s.jpg$/ =~ pg then pg else pg.gsub(".jpg", "-s.jpg") end
     bd = get_body(pg2)
+    if bd[1] == nil
+      succ = false
+      break
+    end
     next if bd[1].size < MINSIZE
     fname = "#{pref}-#{id}.jpg"
     if bd[1] != ""
@@ -192,29 +230,36 @@ def load(url)
       File.delete(fname)
     end
   end
-  puts "#{pref}: end"
+  if succ == true
+    zip_images(pref)
+  end
+  puts "#{pref}: end (#{succ})"
+  succ
 end
 
-def log_url(url)
+def unloaded?(url)
   if $logs[url] == true
     STDERR.puts "URL(#{url}) is already downloaded."
     return false
   else
-    return false if url !~ /^http/
-    $logs[url] = true
-    File.open($logfile, 'a') do |fp|
-      fp.puts(url)
-    end
+    return true
   end
-  true
+end
+
+def log_url(url)
+  return false if url !~ /^http/
+  $logs[url] = true
+  File.open($logfile, 'a') do |fp|
+    fp.puts(url)
+  end
 end
 
 def service(client)
   while url = client.gets do
-    if log_url(url.chomp) == true
-      Thread.start(url) do |u|  
-        load(url.chomp)
-      end
+    next if unloaded?(url) == false
+    Thread.start(url) do |u|  
+      succ = load(url.chomp)
+      log_url(url.chomp)
     end
   end
   client.close
