@@ -17,6 +17,11 @@ USAGE = "Usage: epiccli.rb <dbfile> <url>"
     status TEXT
   );
 
+  CREATE TABLE divs (
+    id INTEGER PRIMARY KEY,
+    name TEXT
+  );
+
 =end
 
 require 'active_record'
@@ -27,11 +32,13 @@ require 'fileutils'
 
 DEBUG = true
 LOCKD = '/tmp/'
+TRASH = '_zippedimage'
 STAT  = 'COMPLETED'
 MINSIZE = 20 * 1024;  # 50 kB
 MINLEN = 400
 TIMEOUT = 300
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"
+NLOCKTRY = 20
 
 DIVNAME = [
 #           "div.main-inner",
@@ -95,38 +102,42 @@ def init
     exit 1
   end
 
-  @url = ARGV[1]
   @lockf = LOCKD + File.basename(@dbfile) + '.lock'
-  puts "LOCK: #{@lockf}"
+  STDERR.puts "LOCK: #{@lockf}" if DEBUG
+
+  ARGV[1]  # return page URL
 end
 
 def lock
-  loop do
+  st = false
+  NLOCKTRY.times do
     if File.exist?(@lockf)
       sleep 5
     else
       FileUtils.touch(@lockf)
+      st = true
       break
     end
   end
+  st
 end
 
 def unlock
-  FileUtils.rm(@lockf)
+  FileUtils.rm(@lockf) if File.exist?(@lockf)
 end
 
-def record_url
+def record_url(url)
   #p = Page.where.not(status: nil).where(url: @url)
-  p = Page.where(url: @url)
-#  if p.size > 0
+  p = Page.where(url: url)
   if p.size == 1 && p[0].status == STAT
-    STDERR.puts "URL(#{@url}) is already loaded."
+    STDERR.puts "URL(#{url}) is already loaded."
     return nil
   else
-    /^(http:\/\/.+?\/)/ =~ @url
-    @fqdn = $1
+    puts "URL=#{url}"
+    m = url.match(/^(https?:\/\/.+?\/)/)
+    @fqdn = m[1]
     charset = nil
-    html = OpenURI.open_uri(@url) do |f|
+    html = URI.open(url) do |f|
       charset = f.charset
       f.read
     end
@@ -135,15 +146,18 @@ def record_url
       pref = Time.now.strftime("%Y%m%d%H%M%S%L")
       title = doc.title.split(/\|/)[0].gsub(/'/, '_').gsub(/\s+/, '_').gsub(/\(/, '[').gsub(/\)/, ']').gsub(/\//, '_').gsub(/&/, 'and')
       @page = Page.new(
-        pref: pref,
-        url: @url,
+        pref:  pref,
+        url:   url,
         title: title
       )
-      lock
-      @page.save
-      unlock
+      if lock
+        @page.save
+        unlock
+      else
+        STDERR.puts "Can't lock and exit!"
+        return nil
+      end
     else
-      #@pref = p[0].pref
       @page = p[0]
     end
     STDERR.puts "PREF: #{@page.pref}" if DEBUG
@@ -184,7 +198,7 @@ def search_images(doc)
     c = doc.css(d)
     if c.children.size > 0
       cont = c
-      puts "DIVNAME=#{d}" if DEBUG
+      STDERR.puts "DIVNAME=#{d}" if DEBUG
       break
     end
   end
@@ -196,34 +210,29 @@ def search_images(doc)
   cont.children.each do |ev|
     get_imagepath(ev, imgs)
   end
-  puts "PAGE: #{imgs.size} img" if DEBUG
+  STDERR.puts "PAGE: #{imgs.size} img" if DEBUG
   imgs
 end
 
 def check_image(fname)
-  st = true
-  sz = nil
-  IO.popen("identify -format \"%w,%h\" #{fname}", :err => [:child, :out]) do |io|
+  sz = [0, 0]
+  IO.popen("identify -format \"%wx%h\" #{fname}", :err => [:child, :out]) do |io|
     while l = io.gets do
       case l
-      when /Geometry: (\d+)x(\d+)\+/
-        sz = [$1, $2]
       when /^identify: Not a /
         STDERR.puts "NOT A IMAGE: #{fname}" if DEBUG
         sz = [0, 0]
+        break
       when /^identify: (.+):/
         STDERR.puts "FILE IS INVALID: #{fname}: #{$1}" if DEBUG
-        st = false
-      else
-        sz = l.split(",")
+        sz = nil
+        break
+      when /(\d+)x(\d+)/
+        sz = [$1, $2]
       end
     end
   end
-  if st == true
-    return sz
-  else
-    return nil
-  end
+  sz
 end
 
 def load_image(image, i)
@@ -233,8 +242,7 @@ def load_image(image, i)
     return true
   end
   puts "#{i}: #{image}"
-  iurl = if image !~ /^http/ then @fqdn + "/" + image else image end
-  iurl = URI.encode(iurl)
+  iurl = URI.encode(if image !~ /^http/ then @fqdn + "/" + image else image end)
   body = ""
   succ = false
   20.times do |j|
@@ -249,7 +257,7 @@ def load_image(image, i)
       end
       sz = check_image(fname)
       next if sz == nil
-      STDERR.puts "SZ: #{sz}/#{fname}"
+      STDERR.puts "SZ: #{sz}/#{fname}" if DEBUG
       if sz.size >= 2
         if sz.size > 2 || body.size < MINSIZE || sz[0].to_i < MINLEN || sz[1].to_i < MINLEN
           File.delete(fname)
@@ -279,50 +287,54 @@ end
 def zip_page
   zipfile = @page.title.gsub(/\[/, "\\[").gsub(/\]/, "\\]") + ".zip"
   images  = "#{@page.pref}-*.jpg #{@page.pref}-*.png"
-  zippeddir = "zippedimage"
-  system "zip #{zipfile} #{images}"
-  if Dir.exist?(zippeddir) == false
-    FileUtils.mkdir(zippeddir)
+  begin
+    system "zip #{zipfile} #{images}"
+  rescue StandardError => e
+    STDERR.puts "Can't zip images: #{e}"
+    return
+  end
+  if lock
+    @page.status = STAT
+    @page.save
+    unlock
+  end
+  if Dir.exist?(TRASH) == false
+    FileUtils.mkdir(TRASH)
   end
   images.split.each do |im|
-    system("mv #{im} #{zippeddir}/")
+    system("mv #{im} #{TRASH}/")
   end
-  lock
-  @page.status = STAT
-  @page.save
-  unlock
 end
 
 def main
-  init
-  doc = record_url
-  if doc == nil
-    exit 1
-  else
+  url = init
+  doc = record_url(url)
+  if doc != nil
     imgs = search_images(doc)
     if imgs.size == 0
       delete_page
       exit 1
     end
     @succ = true
+    st = true
     th = Array.new
     imgs.each_with_index do |img, i|
       th << Thread.new do
-        succ = load_image(img, i)
-        if succ == false
-          @succ = false
-        end
+        # どれか一つでも失敗したら全体を失敗と見なす        
+        @succ = false if load_image(img, i) == false
       end
     end
     th.each {|t| t.join}
     if @succ == true
       zip_page
     else
+      STDERR.puts "Can't complete DLs: #{url}"
       #delete_page
-      exit 1
     end
+  else
+    STDERR.puts "Can't read the page: #{url}"
   end
-  puts "process end. (#{@url})"
+  puts "process end. (#{url})"
 end
 
 main
