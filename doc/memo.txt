@@ -9,12 +9,14 @@
     fingerprint text,
     checkdate varchar(14),
     related_id text,
-    status text
+    status text,
+    xreso integer,
+    yreso integer,
+    filesize integer,
+    liked integer
   );
 
-  alter table images add column xreso integer;
-  alter table images add column yreso integer;
-  alter table images add column filesize integer;
+# alter table images add column liked integer;
 
   create table tags (
     id integer primary key,
