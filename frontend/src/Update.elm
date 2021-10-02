@@ -15,9 +15,9 @@ import Http
 import Types exposing (..)
 import WebSocket
 
-baseUrl : String
+--baseUrl : String
 --baseUrl = "https://programming-elm.com/"
-baseUrl = "http://localhost:4567/"
+--baseUrl = "http://localhost:4567/"
 
 wsUrl : String
 wsUrl =
@@ -38,10 +38,10 @@ init () =
 
 -}
 
-fetchFeed : Cmd Msg
-fetchFeed =
+fetchFeed : Int -> Cmd Msg
+fetchFeed nimg =
   Http.get
-    { url = baseUrl ++ "feed"
+    { url = baseUrl ++ "feed/" ++ (String.fromInt nimg)
     , expect = Http.expectJson LoadFeed (list photoDecoder)
     }
 
@@ -103,7 +103,7 @@ update msg model =
   case msg of
     Next ->
       ( model
-      , fetchFeed
+      , fetchFeed 4
       )
     ToggleLike id ->
       ( { model

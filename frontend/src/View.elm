@@ -8,7 +8,7 @@ import Json.Decode exposing (Decoder, bool, decodeString, int, list, string, suc
 import Json.Decode.Pipeline exposing (hardcoded, required)
 -}
 import Html exposing (..)
-import Html.Attributes exposing (alt, class, href, target, disabled, id, placeholder, src, type_, value)
+import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 
@@ -46,7 +46,7 @@ viewLoveButton photo =
     , span [ class "icon" ]
       [ a [ class "modal-button"
           , target "modal-bis"
-          , href photo.url
+          , href (baseUrl ++ "image/" ++ (String.fromInt photo.id))
           ]
         [ i [ class "fa fa-expand is-dark" ]
           []
@@ -101,18 +101,34 @@ viewDetailedPhoto photo =
         "image-discarded"
       else
         ""
+    bgcolor =
+      if photo.status == "pending" then
+        "-pending"
+      else
+        ""
+    url = baseUrl ++ "image/" ++ (String.fromInt photo.id)
   in
   div [ class "column" ]
-    [ div [ class "box" ]
+    [ div [ class "box"
+          , class ("image-body" ++ bgcolor)
+          ]
       [ viewInfoBar photo
       --, viewTagBar photo
       , span
         [ 
         ]
         [ div [] -- class "border-selected" ]
-          [ img [ src photo.url
-                , class opacity ]
-            []
+          [ a [ class "modal-button"
+              , target "modal-bis"
+              , href url
+              ]
+            [ img
+                [ src url
+                , class opacity
+                , title photo.filename
+                ]
+                []
+            ]
           ]
         ]
       ]
@@ -122,7 +138,7 @@ viewDetailedPhoto photo =
       [ div [ class "modal-background" ] []
       , div [ class "modal-content" ]
         [ p [ class "image is-4by3" ]
-          [ img [ src photo.url
+          [ img [ src url
                 , alt ""
                 ]
             []
@@ -206,11 +222,15 @@ view model =
               [ button [ class "button is-link"
                        , onClick Next
                        ]
-                [ text "NEXT"
+                [ i [ class "fas fa-play-circle fa-fw" ]
+                  []
+                , strong [] [ text "Next" ]
                 ]
               ]
             ]
           ]
+        , div [ class "level-item" ]
+          []
         ]
       ]
     , div []

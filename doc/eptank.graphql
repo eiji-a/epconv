@@ -1,0 +1,47 @@
+# EP Tank: GraphQL schema
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+enum ImageStatus {
+  PENDING
+  FILED
+  DISCARDED
+  DELETED
+}
+
+type Image {
+  id: Int!
+  filename: String!
+  status: ImageStatus!
+  xreso: Int!
+  yreso: Int!
+  filesize: Int!
+  liked: Boolean
+}
+
+type ImageResult {
+  success: Boolean!
+  errors: [String]!
+  image: Image
+}
+
+type ImagesResult {
+  success: Boolean!
+  errors: [String]!
+  images: [Image]
+}
+
+type Query {
+  image(id: Int!): ImageResult!
+  images(nimg: Int!): ImagesResult!
+}
+
+type Mutation {
+  toggleLike(id: Int!): ImageResult!
+  discard(id: Int!): ImageResult!
+  keep(id: Int!): ImageResult!
+}
+

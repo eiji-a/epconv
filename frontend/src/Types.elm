@@ -6,6 +6,7 @@ import Json.Decode exposing (Decoder, bool, decodeString, int, list, string, suc
 import Json.Decode.Pipeline exposing (hardcoded, required)
 import Http
 
+
 type alias Id =
   Int
 
@@ -16,7 +17,8 @@ type alias Tag =
 
 type alias Photo =
   { id : Id
-  , url : String
+  , filename : String
+  --, url : String
   , status : String
   , xreso : Int
   , yreso : Int
@@ -44,13 +46,24 @@ photoDecoder : Decoder Photo
 photoDecoder =
   succeed Photo
     |> required "id" int
-    |> required "url" string
+    |> required "filename" string
+    --|> required "url" string
     |> required "status" string
     |> required "xreso" int
     |> required "yreso" int
     |> required "filesize" int
     |> required "liked" bool
     |> required "tags" (list int)
+
+type alias ImageResponse =
+  { success : Boolean
+  , errors : List String
+  , image : Maybe Photo
+  }
+
+--query : String -> SelectionSet ImageResponse RootQuery
+--query =
+
 
 initialModel : Model
 initialModel =
@@ -80,4 +93,8 @@ type Msg
   | LoadFeed (Result Http.Error Feed)
 --  | LoadStreamPhoto (Result Json.Decode.Error Photo)
 --  | FlushStreamQueue
+
+baseUrl : String
+--baseUrl = "https://programming-elm.com/"
+baseUrl = "http://localhost:4567/"
 

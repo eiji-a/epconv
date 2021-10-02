@@ -331,6 +331,17 @@ div.border-selected
   padding: 0px ;
 }
 
+.fa-fw
+{
+  margin-right: 4px ;
+}
+
+div.image-body-pending
+{
+  background: #fff0d0 ;
+}
+
+
 @media (min-width: 650px) {
   body {
     background: #f9f9f9;
