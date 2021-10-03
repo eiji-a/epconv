@@ -27,4 +27,4 @@ picshare.js
 
 *.elmi
 *.elmo
-
+node_modules

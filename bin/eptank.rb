@@ -52,30 +52,6 @@ class Eptank < Sinatra::Base
         n -= 1
       end
     end
-=begin        
-      begin
-        next if $noexist[r] == false
-        im =
-          if $images[r] != nil && $images[r] != false
-            $images[r]
-          else
-            Image.find(r)
-          end
-        if im[:status] == Image::ST_PEND || im[:status] == Image::ST_FILE
-          imgs << im
-          $images[r] = im
-          im.status = Image::ST_FILE
-          im.save
-          n -= 1
-        else
-          $noexist[r] = false
-        end
-      rescue
-        $noexist[r] = false
-        STDERR.puts "NOT FIND: #{r}"
-      end
-    end
-=end
     imgs
   end
 
@@ -103,6 +79,24 @@ class Eptank < Sinatra::Base
     body
   end
 
+  def setLike(id, lk)
+    st = Image.like(id, lk)
+    if st != nil
+      {:status => "OK"}
+    else
+      {:status => "ERR"}
+    end
+  end
+
+  def setStatus(id, stat)
+    st = Image.status(id, stat)
+    if st != nil
+      {:status => "OK"}
+    else
+      {:status => "ERR"}
+    end
+  end
+
   #------------------------
 
   get '/' do
@@ -118,11 +112,30 @@ class Eptank < Sinatra::Base
     json images
   end
 
+  get '/like/:id/:flag' do |id, flag|
+    f =
+      if flag == 'on'
+        true
+      elsif flag == 'off'
+        false
+      else
+        nil
+      end
+    if f == nil
+      r = {:status => "ERR"}
+      json r
+    else
+      json setLike(id.to_i, f)
+    end
+  end
+
+  get '/status/:id/:stat' do |id, stat|
+    json setStatus(id.to_i, stat)
+  end
+
   get '/image/:id' do |id|
     content_type 'image/jpeg'
-    b = imagedata(id.to_i)
-    STDERR.puts "#{b.size}"
-    b
+    imagedata(id.to_i)
   end
 
   post '/graphql' do

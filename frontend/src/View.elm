@@ -32,14 +32,14 @@ viewLoveButton photo =
     [ span [ class "icon" ]
       [ i
         [ class heartClass
-        , onClick (ToggleLike photo.id)
+        , onClick (if photo.liked == False then Like photo.id else Dislike photo.id)
         ]
         []
       ]
     , span [ class "icon" ]
       [ i
         [ class trashClass
-        , onClick (ToggleTrash photo.id)
+        , onClick (if photo.status == "discarded" then Undiscard photo.id else Trash photo.id)
         ]
         []
       ]
