@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 #
-#
+# a
 
 require 'sinatra'
 require 'sinatra/reloader'
