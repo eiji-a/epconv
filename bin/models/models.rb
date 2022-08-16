@@ -16,40 +16,47 @@ class Image < ActiveRecord::Base
   def self.init
     @@maxid = Image.maximum('id')
     @@images = Hash.new
-    @@noexist = Hash.new
+    #@@noexist = Hash.new
   end
 
   def self.maxid
     @@maxid
   end
 
-  def self.cache(id, im)
-    @@images[id] = im
-    @@noexist[id] = nil
+  def self.cache(im)
+    @@images[im[:id]] = im
+    #@@noexist[im[:id]] = nil
   end
 
   def self.uncache(id)
     @@images[id] = nil
-    @@noexist[id] = false
+    #@@noexist[id] = false
+  end
+
+  def self.ids_status(stats)
+    ids = Image.select("id").where(status: stats)
+    STDERR.puts "IDCLASS: #{ids[0].class}"
+    ids
   end
 
   def self.getout(i)
-    return nil if @@noexist[i] == false
-    if @@images[i] != nil && @@images[i] != false
-      STDERR.puts "D-IMG: #{i}" if @@images[i].status == ST_DISC
+
+    #return nil if @@noexist[i] == false
+    #if @@images[i] != nil && @@images[i] != false
+    if @@images[i] != nil
+        STDERR.puts "D-IMG: #{i}" if @@images[i].status == ST_DISC
       return @@images[i]
     else
       begin
         im = Image.find(i)
+        self.cache(im)
         if im[:status] == ST_PEND || im[:status] == ST_FILE
           im.status = ST_FILE
           im.save
-          self.cache(i, im)
-          return im
         else
-          self.uncache(i)
-          return nil
+          im = nil
         end
+        return im
       rescue
         self.uncache(i)
         return nil
@@ -63,22 +70,19 @@ class Image < ActiveRecord::Base
     if im != nil
       im.liked = lk
       im.save
-      self.cache(id, im)
+      self.cache(im)
     end
     im
   end
 
   def self.status(id, stat)
+    STDERR.puts "self.status: STAT #{stat}"
     im = self.getout(id)
     if im != nil
+      self.cache(im)
       if stat == ST_PEND || stat == ST_FILE || stat == ST_DISC || stat == ST_DELE
         im.status = stat
         im.save
-        if stat == ST_DISC || stat == ST_DELE
-          self.uncache(id, im)
-        else
-          self.cache(id)
-        end
       else
         im = nil
       end

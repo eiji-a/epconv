@@ -42,8 +42,8 @@ class Eptank < Sinatra::Base
   end
 
   def get_nimages_randomly(n)
-    imgs = Array.new
 
+    imgs = Array.new
     while n > 0 do
       r = rand(Image.maxid)
       im = Image.getout(r)
@@ -170,7 +170,7 @@ def init
     $images << i[0]
   end
 =end
-
+  srand(Time.now.to_i)
 end
 
 def main

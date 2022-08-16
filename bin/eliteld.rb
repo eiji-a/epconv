@@ -6,7 +6,9 @@ require 'nokogiri'
 
 
 USAGE = 'Usage: eliteld.rb <loadedlist>'
-URLS = ['https://www.elitebabes.com/latest-alex-lynn/',
+URLS = [
+=begin
+        'https://www.elitebabes.com/latest-alex-lynn/',
         'https://www.elitebabes.com/latest-all-gravure/',
         'https://www.elitebabes.com/latest-amour-angels/',
         'https://www.elitebabes.com/latest-body-in-mind/',
@@ -57,14 +59,16 @@ URLS = ['https://www.elitebabes.com/latest-alex-lynn/',
         'https://www.elitebabes.com/latest-zemani/',
         'https://www.elitebabes.com/latest-zishy/',
         #'https://www.jperotica.com/',
-        'https://www.jpbeauties.com/',
-        'https://www.gravurehunter.com/',
-        'https://www.mplhunter.com/',
-
+        
+        
+=end
+        #['https://www.jpbeauties.com/', 'ul.gallery-a', 'ul.list-gallery.a.css', :nopage],
+        ['https://www.elitebabes.com/latest-updates/', 'ul.gallery-a.e', 'ul.list-gallery.a.css', :paging],
+        ['https://www.babehub.com/', 'ul.gallery-d', 'ul.gallery-e.a', :paging],
        ]
-CLASS_LIST = 'ul.gallery-a'
+CLASS_LIST = 'ul.gallery-a.e'
 #CLASS_IMG  = 'ul.gallery-b'
-CLASS_IMG  = 'ul.list-justified2'
+CLASS_IMG  = 'ul.list-gallery.a.css'
 CLASS_IMGURL  = 'gallery-'
 MAXBABES = 100
 MAXLEVEL = 2
@@ -146,8 +150,7 @@ def load_page2(url)
 end
 
 
-def load_page(url, lv)
-  #puts "LP(#{lv}):#{url}"
+def load_page(url, cls, lv)
   return if lv > MAXLEVEL
   #puts "LV=OK"
   return if url == '' || url == nil
@@ -156,9 +159,10 @@ def load_page(url, lv)
   #puts "NBABES=OK"
   return if url =~ /\/video\//
   if @loaded[url] == true
-    #STDERR.puts "ALREADY LOADED: #{url}"
+    STDERR.puts "ALREADY LOADED: #{url}"
     return
   end
+  puts "LP(#{lv}):#{url}"
   #puts "UNLOADED"
   #puts "URL(#{@nbabes}):#{url}"
   base = Time.now.strftime("%Y%m%d%H%M%S-")
@@ -170,7 +174,7 @@ def load_page(url, lv)
   end
   doc = Nokogiri::HTML.parse(html, nil, charset)
 
-  images = doc.css(CLASS_IMG)
+  images = doc.css(cls)
   #images = doc.xpath("//ul[contains(@class, '#{CLASS_IMG}')]")
   #puts "IMG:#{images}"
   images.children.each do |ev|
@@ -179,10 +183,12 @@ def load_page(url, lv)
     end
   end
   if images.children.size > 0
-    puts "URL(#{@nbabes}):#{url}"
+    #puts "URL(#{@nbabes}):#{url}"
     loaded(url)
   end
 
+# NOT RECURSIVE 
+=begin
   images = doc.xpath("//ul[contains(@class, '#{CLASS_IMGURL}')]")
   #puts "IMG:#{images}"
   images.children.each do |ev|
@@ -202,11 +208,12 @@ def load_page(url, lv)
       load_page(ev2['href'], lv + 1) if lv <= MAXLEVEL
     end
   end
+=end
 
 end
 
-def load_site(url)
-  #puts "LS:#{url}"
+def load_site(url, cls, img)
+  puts "LS:#{url}"
   return if @nbabes > MAXBABES
   charset = nil
   html = nil
@@ -219,13 +226,16 @@ def load_site(url)
     return NOPAGE
   end
 
+  #STDERR.puts "CONTSIZE: #{html.size}"
   doc = Nokogiri::HTML.parse(html, nil, charset)
   return NOPAGE if doc.title =~ /^404 at/
-  gallery = doc.css(CLASS_LIST)
+  gallery = doc.css(cls)
+  puts "GAL:#{gallery.to_s.length}"
+  return NOPAGE if gallery.to_s.length < 100
   gallery.children.each do |ev|
     #puts "LINE:#{ev['href']}"
     ev.children.each do |ev2|
-      load_page(ev2['href'], 1)
+      load_page(ev2['href'], img, 1)
     end
   end
   return OKPAGE
@@ -238,7 +248,9 @@ def main
     puts "SITE(#{i+1}/#{URLS.size}): #{u}"
     1.step do |i|
       return if @nbabes > MAXBABES
-      rc = load_site(u + "page/#{i}/")
+      url = u[0] + if u[3] == :paging then "page/#{i}/" else "" end
+      #rc = load_site(u[0] + "page/#{i}/", u[1], u[2])
+      rc = load_site(url, u[1], u[2])
       break if rc == NOPAGE
     end
   end
