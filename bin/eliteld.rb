@@ -59,13 +59,181 @@ URLS = [
         'https://www.elitebabes.com/latest-zemani/',
         'https://www.elitebabes.com/latest-zishy/',
         #'https://www.jperotica.com/',
+
+        # OK list (2022/08/16)
+        'https://www.elitebabes.com/latest-pinup-files/'
+        https://www.elitebabes.com/met-art/
+        https://www.elitebabes.com/latest-femjoy/
+        https://www.elitebabes.com/latest-mpl-studios/
+        https://www.elitebabes.com/latest-playboy/
+        https://www.elitebabes.com/latest-hegre-art/
+        https://www.elitebabes.com/latest-rylsky-art/
+        https://www.elitebabes.com/latest-penthouse/
+        https://www.elitebabes.com/latest-sex-art/
+        https://www.elitebabes.com/latest-photodromm/
+        https://www.elitebabes.com/latest-errotica-archives/
+        https://www.elitebabes.com/latest-domai/
+        https://www.elitebabes.com/latest-erotic-beauty/
+        https://www.elitebabes.com/latest-stunning-18/
+        https://www.elitebabes.com/latest-goddess-nudes/
+        https://www.elitebabes.com/latest-zemani/
+        https://www.elitebabes.com/eternal-desire/
+        https://www.elitebabes.com/ftv-girls/
+        https://www.elitebabes.com/teen-dreams/
+        https://www.elitebabes.com/the-emily-bloom/
+        https://www.elitebabes.com/body-in-mind/
+        https://www.elitebabes.com/holly-randall/
+        https://www.elitebabes.com/milena-angel/
+        https://www.elitebabes.com/fame-girls/
+        https://www.elitebabes.com/nubile-films/
+        https://www.elitebabes.com/nakety/
+        https://www.elitebabes.com/test-shoots/
+        https://www.elitebabes.com/mc-nudes/
+        https://www.elitebabes.com/emily-bloom/
+
         
         
 =end
-        #['https://www.jpbeauties.com/', 'ul.gallery-a', 'ul.list-gallery.a.css', :nopage],
-        ['https://www.elitebabes.com/latest-updates/', 'ul.gallery-a.e', 'ul.list-gallery.a.css', :paging],
-        ['https://www.babehub.com/', 'ul.gallery-d', 'ul.gallery-e.a', :paging],
+        #['https://www.jpbeauties.com/', :nopage, ['ul.gallery-a'], 'ul.list-gallery.a.css'],
+        #['https://www.elitebabes.com/latest-updates/', :paging, ['ul.gallery-a.e'], 'ul.list-gallery.a.css'],
+        #['https://www.elitebabes.com/most-viewed/sort/alltime/', :nopage, ['ul.gallery-a.b'], 'ul.list-gallery.a.css'],
+        #['https://www.elitebabes.com/top-rated-babes/', :paging, ['ul.gallery-a.a.d', 'ul.gallery-a.b'], 'ul.list-gallery.a.css'],
+        ['https://www.elitebabes.com/model/', :paging, ['ul.gallery-a.a.d', 'ul.gallery-a.b'], 'ul.list-gallery.a.css'],
+        #['https://www.elitebabes.com/model-tag/big-boobs/', :paging, ['ul.gallery-a.a.d', 'ul.gallery-a.b'], 'ul.list-gallery.a.css'],
+        #['https://www.elitebabes.com/tag/hairy-pussy/', :paging, ['ul.gallery-a.b'], 'ul.list-gallery.a.css'],
+        #['https://www.elitebabes.com/tag/nipples/', :paging, ['ul.gallery-a.b'], 'ul.list-gallery.a.css'],
+        #['https://www.elitebabes.com/collections/?sort=2940/', :nopage, ['ul.gallery-a'], 'ul.list-gallery.a.css'],
+        #['https://www.elitebabes.com/tag/big-areolas/', :paging, ['ul.gallery-a.b'], 'ul.list-gallery.a.css'],
+        #['https://www.babehub.com/', :paging, 'ul.gallery-d', 'ul.gallery-e.a'],
        ]
+URL = ['https://www.elitebabes.com/model/', :paging, ['ul.gallery-a.b'], 'ul.list-gallery.a.css']
+MODELS = [
+  'addie',
+  'adeline',
+  'adriana-f',
+  'aida-e',
+  'aislin',
+  'alisa-i',
+  'angely-grace',
+  'anita-c',
+  'anna-aj',
+  'anna-tatu',
+  'ariel-a',
+  'ashley',
+  'avery',
+  'aya-beshen',
+  'belka',
+  'berylq',
+  'calypso',
+  'candice-b',
+  'caramel',
+  'carisha',
+  'caitlin-mcswain',
+  'chanel-fenn',
+  'charlene-a',
+  'connie-carter',
+  'corinna',
+  'dakota-pink',
+  'daniel-sea',
+  'danniela',
+  'debora-a',
+  'delilah-g',
+  'diana-jam',
+  'dita-v',
+  'eden-arya',
+  'elle-mira', # page2 20220819
+  'elle-tan',
+  'eugenia-diordiychuk',
+  'eve-sweet',
+  'evita-lima',
+  'gabbie-carter',
+  'gala',
+  'georgia',
+  'giulia-wylde',
+  'gisella',
+  'gloria-sol',
+  'grace-c',
+  'hazel-moora',
+  'haily-sanders',
+  'hayden-winters',
+  'hilary-c',
+  'holly-haim',
+  'indiana-a',
+  'innes-a',
+  'irina-j',
+  'izabella',
+  'jeff-milton',
+  'josephine-2',
+  'katya-enokaeva',
+  'kay-j',
+  'kayla-coyote',
+  'kenze-thomas',
+  'kiki-cash',
+  'kira-w',
+  'kylie-page',
+  'lady-jay',
+  'lana-lane',
+  'leanna-decker',
+  'libby',
+  'lilit-a',
+  'lily-c',
+  'lily-ivy',
+  'luda',
+  'lulya',
+  'marianna-merkulova',
+  'mariposa',
+  'marit',
+  'marta-e',
+  'martina-mink',
+  'marryk',
+  'mila-azul',
+  'mila-h',
+  'milana-4',
+  'milena-d',
+  'monika-3',
+  'nancy-a',
+  'nastasy',
+  'niemira-a',
+  'nika-7',
+  'nikia-a',
+  'olga-alberti',
+  'oxana-chic',
+  'precious-a',
+  'reliee-marks',
+  'riley-anne',
+  'rinna-2',
+  'rosalina-2',  # last 2022-08-19
+  'samadhi-amour',
+  'saloma',
+  'samara',
+  'sanija',
+  'sarah-joy',
+  'scarlet',
+  'serena-wood',
+  'shania-a',
+  'shay-laren',
+  'sherice',
+  'siena',
+  'sienna',
+  'simon',
+  'skye-blue',
+  'sofi-a',
+  'sojie',
+  'soloan-kendricks',
+  'sonya-blaze',
+  'sophie-4',
+  'stacy-cruz',
+  'stella-cox',
+  'suok',
+  'susann',
+  'sybil-a',
+  'valeria-c',
+  'verona',
+  'vika-c',
+  'victoria-garin',
+  'viola-o',
+  'zerra-a',
+]
 CLASS_LIST = 'ul.gallery-a.e'
 #CLASS_IMG  = 'ul.gallery-b'
 CLASS_IMG  = 'ul.list-gallery.a.css'
@@ -212,7 +380,25 @@ def load_page(url, cls, lv)
 
 end
 
-def load_site(url, cls, img)
+def load_gallery(doc, cls, img)
+  return NOPAGE if cls.size == 0
+  gallery = doc.css(cls.shift)
+  puts "GAL:#{gallery.to_s.length}"
+  return NOPAGE if gallery.to_s.length < 100
+  gallery.children.each do |ev|
+    if cls.size == 0
+      #puts "LINE:#{ev['href']}"
+      ev.children.each do |ev2|
+        load_page(ev2['href'], img, 1)
+      end
+    else
+      load_gallery(doc, cls)
+    end
+  end
+
+end
+
+def load_site2(url, cls, img)
   puts "LS:#{url}"
   return if @nbabes > MAXBABES
   charset = nil
@@ -229,6 +415,7 @@ def load_site(url, cls, img)
   #STDERR.puts "CONTSIZE: #{html.size}"
   doc = Nokogiri::HTML.parse(html, nil, charset)
   return NOPAGE if doc.title =~ /^404 at/
+
   gallery = doc.css(cls)
   puts "GAL:#{gallery.to_s.length}"
   return NOPAGE if gallery.to_s.length < 100
@@ -242,18 +429,81 @@ def load_site(url, cls, img)
 end
 
 
+def load_site(url, cls, img, paging, pg)
+  puts "LS:#{url}"
+  page = if pg == 1 then
+    ""
+  elsif cls.size == 2 then
+    "page/#{pg}/"
+  else
+    "mpage/#{pg}"
+  end
+  url2 = "#{url}#{page}"
+  puts "PAGE:#{url2}"
+  puts "==================================================================="
+  return if @nbabes > MAXBABES
+  charset = nil
+  html = nil
+  begin
+    html = open(url2) do |f|
+      charset = f.charset
+      f.read
+    end
+  rescue
+    return NOPAGE
+  end
+
+  #STDERR.puts "CONTSIZE: #{html.size}"
+  doc = Nokogiri::HTML.parse(html, nil, charset)
+  return NOPAGE if doc.title =~ /^404 at/
+  gallery = doc.css(cls[0])
+  puts "GAL:#{gallery.to_s.length}"
+  return NOPAGE if gallery.to_s.length < 100
+  gallery.children.each do |ev|
+    #puts "LINE:#{ev['href']}"
+    ev.children.each do |ev2|
+      if cls.size > 1
+        break if @nbabes > MAXBABES
+        load_site(ev2['href'], cls[1..], img, paging, 1)
+        sleep rand(5..10) if @nbabes == 0
+      else
+        load_page(ev2['href'], img, 1)
+      end
+    end
+  end
+  if paging == :paging && @nbabes <= MAXBABES
+    pg += 1
+    load_site(url, cls, img, paging, pg)
+  end
+  return OKPAGE
+end
+
+
 def main
   init
+=begin
   URLS.shuffle.each_with_index do |u, i|
     puts "SITE(#{i+1}/#{URLS.size}): #{u}"
     1.step do |i|
       return if @nbabes > MAXBABES
-      url = u[0] + if u[3] == :paging then "page/#{i}/" else "" end
+      #url = u[0] + if u[1] == :paging then "page/#{i}/" else "" end
+      url = u[0]
       #rc = load_site(u[0] + "page/#{i}/", u[1], u[2])
-      rc = load_site(url, u[1], u[2])
+      rc = load_site(url, u[2], u[3], u[1], 1)
       break if rc == NOPAGE
     end
   end
+=end
+
+  rc = OKPAGE
+  MODELS.shuffle.each_with_index do |u, i|
+    break if @nbabes > MAXBABES || rc == NOPAGE
+    puts "MODEL(#{i+1}/#{MODELS.size}): #{u}"
+    url = "#{URL[0]}#{u}/"
+    rc = load_site(url, URL[2], URL[3], URL[1], 1)
+    STDERR.puts "Not Found: model #{u}" if rc == NOPAGE
+  end
+
 end
 
 main
