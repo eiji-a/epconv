@@ -151,6 +151,7 @@ def get_path(f)
          else
            ""
          end
+  STDERR.puts "PATH: #{path} / #{f}"
   return cdpath, path, path + f
 end
 
