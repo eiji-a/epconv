@@ -54,16 +54,26 @@ DIVNAME = [
            "div.post",
            "article.post",
            "entry_img_list",
+           "div.article_img",
+           "div.entry-content cf iwe-border",
+           "ul.entry_img_list",
+           "div#gh",                # https://e-hentai.org/lofi/g/2516978/6f19253b9f/20 課題あり
+           "div#content",
+           "div.mdc-layout-grid__inner",
+
+
           ]
 
 #UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
 #UA = "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; rv:11.0) like Gecko"
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"
+#UA = "Chrome/115.0.5790.114 Safari/537.36"
+
 
 
 def get_body(url)
   charset = nil
-  url2 = URI.encode url
+  url2 = (URI.encode url).gsub("../", "")
   #opt = {}
   #opt['User-Agent'] = UA
   #opt[:read_timeout] = TIMEOUT
@@ -129,22 +139,29 @@ def get_img(ev, cpath, pages)
           $1
         elsif ev['src'] != nil && ev['src'] =~ /^http/
           ev['src']
+        elsif ev['data-src'] != nil
+          if ev['data-src'] =~ /^http/ then ev['data-src'] else 'https:' + ev['data-src'] end
         elsif ev['li'] != nil
           nil
         end
+  jpg = if jpg =~ /google/ then nil else jpg end
   puts "JPG=#{jpg}" if DEBUG && jpg != nil
   #if jpg !~ /^http/ && jpg != nil
   #  jpg = cpath + "/" + jpg
   if jpg == nil
+    puts "JPG IS NILL"
     if ev.children.size >= 1
       ev.children.each do |e|
+        #puts "CHILD: #{e}"
         get_img(e, cpath, pages)
       end
     end
   else
     jpg = @fqdn + jpg if jpg !~ /^http/
-    puts "JPG: #{jpg}" if DEBUG
+    #puts "JPG: #{jpg}" if DEBUG
     #pages << jpg if /\.jpg/ =~ jpg || /\.jpeg/ =~ jpg
+    jpg = if jpg =~ /webp¥?/ then jpg.split("webp?")[0] + "webp" else jpg end
+    #puts "JPG IS #{jpg}"
     pages << jpg  # jpgなどで終わらない場合あり
     puts "add image"
   end
