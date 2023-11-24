@@ -694,7 +694,8 @@ end
 def get_image(imgurl, referer, base)
   #puts "imgurl=#{imgurl}"
   begin
-    img = open(imgurl, "Referer" => referer) do |i|
+    #img = open(imgurl, "Referer" => referer) do |i|
+    img = URI.open(imgurl, "Referer" => referer) do |i|    # from Ruby 3.0
       i.read
     end
     filename = imgurl.split('/')[-1]
@@ -728,7 +729,8 @@ def load_page2(url)
   charset = nil
   return if url == nil
   #puts "OK:#{CLASS_IMG}"
-  html = open(url) do |f|
+  #html = open(url) do |f|
+  html = URI.open(url) do |f|   # from Ruby 3.0
     charset = f.charset
     f.read
   end
@@ -763,7 +765,8 @@ def load_page(url, cls, lv)
   base = Time.now.strftime("%Y%m%d%H%M%S-")
   charset = nil
   return if url == nil
-  html = open(url) do |f|
+  # html = open(url) do |f|
+  html = URI.open(url) do |f|     # from Ruby 3.0
     charset = f.charset
     f.read
   end
@@ -831,7 +834,8 @@ def load_site2(url, cls, img)
   charset = nil
   html = nil
   begin
-    html = open(url) do |f|
+    #html = open(url) do |f|
+    html = URI.open(url) do |f|   # from Ruby 3.0
       charset = f.charset
       f.read
     end
@@ -872,11 +876,13 @@ def load_site(url, cls, img, paging, pg)
   charset = nil
   html = nil
   begin
-    html = open(url2) do |f|
-      charset = f.charset
+    # html = open(url2) do |f|
+    html = URI.open(url2) do |f|     # from Ruby 3.0
+        charset = f.charset
       f.read
     end
-  rescue
+  rescue StandardError => e
+    STDERR.puts "CANT OPEN: #{e}"
     return NOPAGE
   end
 
